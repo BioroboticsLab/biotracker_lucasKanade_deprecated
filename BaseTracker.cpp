@@ -25,5 +25,5 @@ void BaseTracker::track(ulong, const cv::Mat &imgOriginal) {
 void BaseTracker::paint(cv::Mat &image, const TrackingAlgorithm::View &view) {
 }
 
-void BaseTracker::paintOverlay(QPainter *painter) {
+void BaseTracker::paintOverlay(QPainter *painter, const View &view) {
 }

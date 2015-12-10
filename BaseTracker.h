@@ -22,6 +22,7 @@ class BaseTracker : public TrackingAlgorithm {
 
   public Q_SLOTS:
     void changeFilterColor();
+    void paintOverlay(QPainter *painter, View const &view = OriginalView) override;
 
   private:
     std::shared_ptr<QFrame> m_toolsFrame;
