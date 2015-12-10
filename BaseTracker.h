@@ -14,14 +14,6 @@ class BaseTracker : public TrackingAlgorithm {
 
     void track(ulong frameNumber, const cv::Mat &frame) override;
     void paint(cv::Mat &m, View const &view = OriginalView) override;
-    void paintOverlay(QPainter *painter) override;
-
-    void postConnect() override;
-
-    std::shared_ptr<QWidget> getToolsWidget() override;
-
-  public Q_SLOTS:
-    void changeFilterColor();
     void paintOverlay(QPainter *painter, View const &view = OriginalView) override;
 
   private:
