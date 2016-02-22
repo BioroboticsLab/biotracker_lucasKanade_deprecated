@@ -24,3 +24,5 @@ versions of the interface. This can be done as follows:
 ```bash
 git pull base master
 ```
+
+A basic example for a working tracking algorithm can be found [here](https://github.com/BioroboticsLab/biotracker_sampletracker).
