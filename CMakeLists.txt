@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.7 FATAL_ERROR)
-project(basetracker)
+project(lucaskanade)
 
 #------------------------------------------------------------------------------
 # Required CPM Setup - no need to modify - See: https://github.com/iauns/cpm
@@ -56,6 +56,7 @@ set(CMAKE_AUTOMOC ON)
 add_definitions(${Qt5Widgets_DEFINITIONS})
 add_definitions(-DQT_NO_KEYWORDS)
 
-add_library(base.tracker SHARED
-    BaseTracker.cpp
+add_library(lucaskanade.tracker SHARED
+    LucasKanade.cpp
+    InterestPoint.cpp
 )
