@@ -25,8 +25,6 @@ class LucasKanadeTracker : public TrackingAlgorithm {
     void paint(ProxyMat &m, View const &view = OriginalView) override;
     void paintOverlay(QPainter *painter, View const &view = OriginalView) override;
 
-    //std::set<Qt::Key> const &grabbedKeys() const;
-
   private:
     // --
     const cv::Size m_subPixWinSize;

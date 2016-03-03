@@ -18,8 +18,7 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     TrackingAlgorithm(settings),
     m_subPixWinSize(10, 10),
     m_winSize(31, 31),
-    //m_termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS,20,0.03) {
-    m_termcrit(cv::TermCriteria::COUNT, 20, 0.03) {
+    m_termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS,20,0.03) {
 }
 
 void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
@@ -27,15 +26,27 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
 
     if (!m_currentPoints.empty()) {
 
-        cv::Mat err;
+        std::vector<float> err;
         if (m_prevGray.empty()) {
             m_gray.copyTo(m_prevGray);
         }
-        cv::calcOpticalFlowPyrLK(m_prevGray, m_gray, m_currentPoints, m_newPoints, m_status, err, m_winSize,
-            3, m_termcrit, 0, 0.001);
+
+        cv::calcOpticalFlowPyrLK(
+            m_prevGray,			/* prev */
+            m_gray,				/* next */
+            m_currentPoints,	/* prevPts */
+            m_newPoints,		/* nextPts */
+            m_status,			/* status */
+            err					/* err */
+            ,m_winSize,			/* winSize */
+            0,					/* maxLevel */
+            m_termcrit,			/* criteria */
+            0,					/* flags */
+            0.001				/* minEigThreshold */
+        );
     }
     std::swap(m_newPoints, m_currentPoints);
-    std::swap(m_prevGray, m_gray);
+    cv::swap(m_prevGray, m_gray);
 }
 
 void LucasKanadeTracker::paint(ProxyMat &, const TrackingAlgorithm::View &) {

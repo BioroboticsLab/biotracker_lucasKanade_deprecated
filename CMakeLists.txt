@@ -41,12 +41,14 @@ CPM_Finish()
 
 biorobotics_config()
 
+find_package(OpenCV REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
     SYSTEM ${Qt5Widgets_INCLUDE_DIRS}
+    SYSTEM ${OpenCV_INCLUDE_DIRS}
     SYSTEM ${Qt5OpenGL_INCLUDE_DIRS}
 )
 
@@ -60,3 +62,5 @@ add_library(lucaskanade.tracker SHARED
     LucasKanade.cpp
     InterestPoint.cpp
 )
+
+target_link_libraries(lucaskanade.tracker ${OpenCV_LIBS})
