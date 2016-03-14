@@ -6,10 +6,19 @@ InterestPoint::InterestPoint(): ObjectModel() {
 
 InterestPoint::~InterestPoint() {}
 
-void InterestPoint::setPosition(cv::Point pos) {
-    m_position = pos;
+void InterestPoint::setPosition(cv::Point2f pos) {
+    m_position.x = pos.x;
+    m_position.y = pos.y;
 }
 
-cv::Point InterestPoint::getPosition() {
+cv::Point2f InterestPoint::getPosition() {
     return m_position;
+}
+
+bool InterestPoint::isValid() {
+    return m_isValid;
+}
+
+void InterestPoint::setValidity(bool v) {
+    m_isValid = v;
 }
