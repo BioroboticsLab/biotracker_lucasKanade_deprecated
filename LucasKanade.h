@@ -1,9 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include <QGroupBox>
 #include <QFormLayout>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QCheckBox>
 #include <biotracker/TrackingAlgorithm.h>
 
 #include <opencv2/video/tracking.hpp>
@@ -25,6 +26,8 @@ class LucasKanadeTracker : public TrackingAlgorithm {
     void paint(ProxyMat &m, View const &view = OriginalView) override;
     void paintOverlay(QPainter *painter, View const &view = OriginalView) override;
 
+    std::shared_ptr<QWidget> getToolsWidget() override;
+
   private:
     // --
     const cv::Size m_subPixWinSize;
@@ -34,6 +37,10 @@ class LucasKanadeTracker : public TrackingAlgorithm {
     cv::Mat m_gray;
     cv::Mat m_prevGray;
     size_t m_currentFrame;
+
+    bool m_shouldTrack; // only when true the system should track
+    bool m_pauseOnInvalidPoint; // if true, the application will pause when a point
+                            // becomes invalid
 
     /**
      * @brief m_invalidOffset
@@ -101,5 +108,9 @@ class LucasKanadeTracker : public TrackingAlgorithm {
         std::vector<InterestPointStatus> filter);
 
     cv::Point2f toCv(QPoint p);
+
+private Q_SLOTS:
+    void checkboxChanged_shouldTrack(int state);
+    void checkboxChanged_invalidPoint(int state);
 
 };

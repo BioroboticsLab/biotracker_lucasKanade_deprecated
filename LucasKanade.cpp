@@ -19,13 +19,15 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     m_subPixWinSize(10, 10),
     m_winSize(31, 31),
     m_termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS,20,0.03),
+    m_shouldTrack(true),
+    m_pauseOnInvalidPoint(false),
     m_invalidOffset(-99999, -99999){
 }
 
 void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
     bool isStepForward = m_currentFrame == (frame - 1);
     m_currentFrame = frame; // TODO must this be protected from other threads?
-    if (frame == 0 || isStepForward) {
+    if ((frame == 0 || isStepForward) && m_shouldTrack) {
         cv::cvtColor(imgOriginal, m_gray, cv::COLOR_BGR2GRAY);
 
         std::vector<InterestPointStatus> filter;
@@ -41,17 +43,17 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
         std::vector<uchar> status;
         std::vector<cv::Point2f> newPoints;
         cv::calcOpticalFlowPyrLK(
-            m_prevGray,			/* prev */
-            m_gray,				/* next */
-            currentPoints,		/* prevPts */
-            newPoints,			/* nextPts */
-            status,				/* status */
-            err					/* err */
-            ,m_winSize,			/* winSize */
-            0,					/* maxLevel */
-            m_termcrit,			/* criteria */
-            0,					/* flags */
-            0.001				/* minEigThreshold */
+            m_prevGray, /* prev */
+            m_gray,	/* next */
+            currentPoints,	/* prevPts */
+            newPoints, /* nextPts */
+            status,	/* status */
+            err	/* err */
+            ,m_winSize,	/* winSize */
+            0, /* maxLevel */
+            m_termcrit,	/* criteria */
+            0, /* flags */
+            0.001 /* minEigThreshold */
         );
 
         updateCurrentPoints(frame, newPoints, status, filter);
@@ -87,16 +89,43 @@ void LucasKanadeTracker::paintOverlay(QPainter *painter, const View &view) {
         int x = static_cast<int>(point.x);
         int y = static_cast<int>(point.y);
 
-        std::cout << m_currentFrame << "@ Pos: " << x << ":" << y << std::endl;
-
         QPen p(color);
         p.setWidth(6);
 
         painter->setPen(p);
         painter->drawEllipse(x, y, 15, 15);
+        auto idTxt = QString::number(i);
+        painter->drawText(x, y, idTxt);
     }
 
 
+}
+
+std::shared_ptr<QWidget> LucasKanadeTracker::getToolsWidget() {
+    auto ui = std::make_shared<QWidget>();
+    auto layout = new QVBoxLayout();
+
+    // Checkbox for tracking enable/disable
+    auto *chkboxShouldTrack = new QCheckBox("Tracking enabled", ui.get());
+    chkboxShouldTrack->setChecked(true);
+
+    QObject::connect(chkboxShouldTrack, &QCheckBox::stateChanged,
+        this, &LucasKanadeTracker::checkboxChanged_shouldTrack);
+
+    layout->addWidget(chkboxShouldTrack);
+
+    // Checkbox for pausing on invalid points
+    auto *chkboxInvalidPoints = new QCheckBox("Pause on invalid Point", ui.get());
+    chkboxInvalidPoints->setChecked(false);
+
+    QObject::connect(chkboxInvalidPoints, &QCheckBox::stateChanged,
+        this, &LucasKanadeTracker::checkboxChanged_invalidPoint);
+
+    layout->addWidget(chkboxInvalidPoints);
+    // ===
+
+    ui->setLayout(layout);
+    return ui;
 }
 
 void LucasKanadeTracker::mouseReleaseEvent(QMouseEvent *e)
@@ -152,16 +181,11 @@ void LucasKanadeTracker::tryCreateNewPoint(QPoint pos) {
         o.add(m_currentFrame, p);
         m_trackedObjects.push_back(o);
 
-        std::cout << "add Point:" << p->getPosition().x << ":" << p->getPosition().y <<
-                     " --> " << (m_currentFrame + 1) << std::endl;
-
         Q_EMIT update();
-
     }
 }
 
 void LucasKanadeTracker::activateExistingPoint(QPoint pos) {
-    std::cout << "try to activate" << std::endl;
     if (m_trackedObjects.size() > 0) {
         cv::Point2f point = toCv(pos);
         std::vector<InterestPointStatus> filter;
@@ -283,11 +307,24 @@ void LucasKanadeTracker::updateCurrentPoints(
 
     if (somePointsAreInvalid) {
         Q_EMIT notifyGUI("Some points are invalid");
-        Q_EMIT pausePlayback(true);
+        if (m_pauseOnInvalidPoint) {
+            Q_EMIT pausePlayback(true);
+        }
     }
 }
 
 cv::Point2f LucasKanadeTracker::toCv(QPoint pos) {
     cv::Point2f point(static_cast<float>(pos.x()), static_cast<float>(pos.y()));
     return point;
+}
+
+// ============== GUI HANDLING ==================
+
+void LucasKanadeTracker::checkboxChanged_shouldTrack(int state) {
+    m_shouldTrack = state == Qt::Checked;
+
+}
+
+void LucasKanadeTracker::checkboxChanged_invalidPoint(int state) {
+    m_pauseOnInvalidPoint = state == Qt::Checked;
 }
