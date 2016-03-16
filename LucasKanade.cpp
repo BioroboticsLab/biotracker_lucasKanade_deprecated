@@ -26,6 +26,39 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     m_invalidOffset(-99999, -99999),
     m_validColor(QColor::fromRgb(0, 0, 255)),
     m_invalidColor(QColor::fromRgb(255, 0, 0)){
+
+    // initialize gui
+    auto ui = getToolsWidget();
+    auto layout = new QVBoxLayout();
+
+    // Checkbox for tracking enable/disable
+    auto *chkboxShouldTrack = new QCheckBox("Tracking enabled", ui);
+    chkboxShouldTrack->setChecked(true);
+    QObject::connect(chkboxShouldTrack, &QCheckBox::stateChanged,
+        this, &LucasKanadeTracker::checkboxChanged_shouldTrack);
+    layout->addWidget(chkboxShouldTrack);
+
+    // Checkbox for pausing on invalid points
+    auto *chkboxInvalidPoints = new QCheckBox("Pause on invalid Point", ui);
+    chkboxInvalidPoints->setChecked(false);
+    QObject::connect(chkboxInvalidPoints, &QCheckBox::stateChanged,
+        this, &LucasKanadeTracker::checkboxChanged_invalidPoint);
+    layout->addWidget(chkboxInvalidPoints);
+
+    // colors
+    auto validColorBtn = new QPushButton("Valid color", ui);
+    QObject::connect(validColorBtn, &QPushButton::clicked,
+        this, &LucasKanadeTracker::clicked_validColor);
+    layout->addWidget(validColorBtn);
+
+    auto invalidColorBtn = new QPushButton("Invalid color", ui);
+    QObject::connect(invalidColorBtn, &QPushButton::clicked,
+        this, &LucasKanadeTracker::clicked_invalidColor);
+    layout->addWidget(invalidColorBtn);
+
+    // ===
+
+    ui->setLayout(layout);
 }
 
 void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
@@ -47,11 +80,21 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
             m_gray.copyTo(m_prevGray);
         }
 
+        // calculate pyramids:
+        //const size_t maxLevel = 10;
+        //cv::Mat prevPyr;
+        //const int numbPrevPyr = cv::buildOpticalFlowPyramid(m_prevGray, prevPyr, m_winSize, maxLevel);
+
+        //cv::Mat pyr;
+        //const int numbPyr = cv::buildOpticalFlowPyramid(m_gray, pyr, m_winSize, maxLevel);
+
         std::vector<uchar> status;
         std::vector<cv::Point2f> newPoints;
         cv::calcOpticalFlowPyrLK(
-            m_prevGray, /* prev */
-            m_gray,	/* next */
+            m_prevGray,
+            m_gray,
+            //prevPyr, /* prev */
+            //pyr, /* next */
             currentPoints,	/* prevPts */
             newPoints, /* nextPts */
             status,	/* status */
@@ -70,14 +113,14 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
     }
 }
 
-void LucasKanadeTracker::paint(ProxyMat &, const TrackingAlgorithm::View &) {
+void LucasKanadeTracker::paint(ulong, ProxyMat &, const TrackingAlgorithm::View &) {
 
 }
 
-void LucasKanadeTracker::paintOverlay(QPainter *painter, const View &view) {
+void LucasKanadeTracker::paintOverlay(ulong currentFrame, QPainter *painter, const View &view) {
 
     std::vector<InterestPointStatus> filter;
-    std::vector<cv::Point2f> newPoints = getCurrentPoints(m_currentFrame, filter);
+    std::vector<cv::Point2f> newPoints = getCurrentPoints(currentFrame, filter);
 
     size_t i;
     for (i = 0; i < newPoints.size(); i++) {
@@ -112,41 +155,6 @@ void LucasKanadeTracker::paintOverlay(QPainter *painter, const View &view) {
     }
 
 
-}
-
-std::shared_ptr<QWidget> LucasKanadeTracker::getToolsWidget() {
-    auto ui = std::make_shared<QWidget>();
-    auto layout = new QVBoxLayout();
-
-    // Checkbox for tracking enable/disable
-    auto *chkboxShouldTrack = new QCheckBox("Tracking enabled", ui.get());
-    chkboxShouldTrack->setChecked(true);
-    QObject::connect(chkboxShouldTrack, &QCheckBox::stateChanged,
-        this, &LucasKanadeTracker::checkboxChanged_shouldTrack);
-    layout->addWidget(chkboxShouldTrack);
-
-    // Checkbox for pausing on invalid points
-    auto *chkboxInvalidPoints = new QCheckBox("Pause on invalid Point", ui.get());
-    chkboxInvalidPoints->setChecked(false);
-    QObject::connect(chkboxInvalidPoints, &QCheckBox::stateChanged,
-        this, &LucasKanadeTracker::checkboxChanged_invalidPoint);
-    layout->addWidget(chkboxInvalidPoints);
-
-    // colors
-    auto validColorBtn = new QPushButton("Valid color", ui.get());
-    QObject::connect(validColorBtn, &QPushButton::clicked,
-        this, &LucasKanadeTracker::clicked_validColor);
-    layout->addWidget(validColorBtn);
-
-    auto invalidColorBtn = new QPushButton("Invalid color", ui.get());
-    QObject::connect(invalidColorBtn, &QPushButton::clicked,
-        this, &LucasKanadeTracker::clicked_invalidColor);
-    layout->addWidget(invalidColorBtn);
-
-    // ===
-
-    ui->setLayout(layout);
-    return ui;
 }
 
 void LucasKanadeTracker::mouseReleaseEvent(QMouseEvent *e)

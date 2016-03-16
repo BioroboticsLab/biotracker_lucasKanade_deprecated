@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <QGroupBox>
+#include <QPointer>
 #include <QFormLayout>
 #include <QLineEdit>
 #include <QPushButton>
@@ -23,10 +24,8 @@ class LucasKanadeTracker : public TrackingAlgorithm {
     LucasKanadeTracker(Settings &settings);
 
     void track(ulong frameNumber, const cv::Mat &frame) override;
-    void paint(ProxyMat &m, View const &view = OriginalView) override;
-    void paintOverlay(QPainter *painter, View const &view = OriginalView) override;
-
-    std::shared_ptr<QWidget> getToolsWidget() override;
+    void paint(ulong frameNumber, ProxyMat &m, View const &view = OriginalView) override;
+    void paintOverlay(ulong frameNumber, QPainter *painter, View const &view = OriginalView) override;
 
   private:
     // --
