@@ -62,7 +62,7 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
 }
 
 void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
-    const int perc_size = 50;
+    const int perc_size = 45;
     m_itemSize = imgOriginal.cols > imgOriginal.rows ? imgOriginal.rows / perc_size : imgOriginal.cols / perc_size;
 
     bool isStepForward = m_currentFrame == (frame - 1);
@@ -81,20 +81,18 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
         }
 
         // calculate pyramids:
-        //const size_t maxLevel = 10;
-        //cv::Mat prevPyr;
-        //const int numbPrevPyr = cv::buildOpticalFlowPyramid(m_prevGray, prevPyr, m_winSize, maxLevel);
+        const size_t maxLevel = 10;
+        std::vector<cv::Mat> prevPyr;
+        cv::buildOpticalFlowPyramid(m_prevGray, prevPyr, m_winSize, maxLevel);
 
-        //cv::Mat pyr;
-        //const int numbPyr = cv::buildOpticalFlowPyramid(m_gray, pyr, m_winSize, maxLevel);
+        std::vector<cv::Mat> pyr;
+        cv::buildOpticalFlowPyramid(m_gray, pyr, m_winSize, maxLevel);
 
         std::vector<uchar> status;
         std::vector<cv::Point2f> newPoints;
         cv::calcOpticalFlowPyrLK(
-            m_prevGray,
-            m_gray,
-            //prevPyr, /* prev */
-            //pyr, /* next */
+            prevPyr, /* prev */
+            pyr, /* next */
             currentPoints,	/* prevPts */
             newPoints, /* nextPts */
             status,	/* status */
@@ -117,10 +115,10 @@ void LucasKanadeTracker::paint(ulong, ProxyMat &, const TrackingAlgorithm::View 
 
 }
 
-void LucasKanadeTracker::paintOverlay(ulong currentFrame, QPainter *painter, const View &view) {
+void LucasKanadeTracker::paintOverlay(ulong, QPainter *painter, const View &) {
 
     std::vector<InterestPointStatus> filter;
-    std::vector<cv::Point2f> newPoints = getCurrentPoints(currentFrame, filter);
+    std::vector<cv::Point2f> newPoints = getCurrentPoints(m_currentFrame, filter);
 
     size_t i;
     for (i = 0; i < newPoints.size(); i++) {
