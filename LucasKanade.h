@@ -30,6 +30,8 @@ class LucasKanadeTracker : public TrackingAlgorithm {
 
   private:
     // --
+    int m_itemSize; // defines how big elements are (so they fit well on big and small vids)
+
     const cv::Size m_subPixWinSize;
     const cv::Size m_winSize;
     cv::TermCriteria m_termcrit;
@@ -52,6 +54,9 @@ class LucasKanadeTracker : public TrackingAlgorithm {
      * The currently active point that can be moved by the mouse curor
      */
     int m_currentActivePoint = -1;
+
+    QColor m_validColor;
+    QColor m_invalidColor;
     // --
 
     void mouseReleaseEvent(QMouseEvent *e) override;
@@ -112,5 +117,9 @@ class LucasKanadeTracker : public TrackingAlgorithm {
 private Q_SLOTS:
     void checkboxChanged_shouldTrack(int state);
     void checkboxChanged_invalidPoint(int state);
+    void clicked_validColor();
+    void clicked_invalidColor();
+    void colorSelected_invalid(const QColor &color);
+    void colorSelected_valid(const QColor &color);
 
 };

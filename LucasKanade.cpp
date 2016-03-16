@@ -4,6 +4,7 @@
 #include <QIntValidator>
 #include <QPushButton>
 #include <QPainter>
+#include <QColorDialog>
 
 #include <biotracker/TrackingAlgorithm.h>
 #include <biotracker/Registry.h>
@@ -16,15 +17,21 @@ extern "C" {
 
 LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     TrackingAlgorithm(settings),
+    m_itemSize(1),
     m_subPixWinSize(10, 10),
     m_winSize(31, 31),
     m_termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS,20,0.03),
     m_shouldTrack(true),
     m_pauseOnInvalidPoint(false),
-    m_invalidOffset(-99999, -99999){
+    m_invalidOffset(-99999, -99999),
+    m_validColor(QColor::fromRgb(0, 0, 255)),
+    m_invalidColor(QColor::fromRgb(255, 0, 0)){
 }
 
 void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
+    const int perc_size = 50;
+    m_itemSize = imgOriginal.cols > imgOriginal.rows ? imgOriginal.rows / perc_size : imgOriginal.cols / perc_size;
+
     bool isStepForward = m_currentFrame == (frame - 1);
     m_currentFrame = frame; // TODO must this be protected from other threads?
     if ((frame == 0 || isStepForward) && m_shouldTrack) {
@@ -79,23 +86,29 @@ void LucasKanadeTracker::paintOverlay(QPainter *painter, const View &view) {
             continue;
         }
 
-        QColor color = QColor::fromRgb(0, 255, 255);
+        QColor color = m_validColor;
         auto point = newPoints[i];
         if (filter[i] == InterestPointStatus::Invalid) {
             point -= m_invalidOffset;
-            color = QColor::fromRgb(255, 0, 0);
+            color = m_invalidColor;
         }
 
         int x = static_cast<int>(point.x);
         int y = static_cast<int>(point.y);
 
+        QFont font = painter->font();
+        font.setPixelSize(m_itemSize);
+        painter->setFont(font);
+
         QPen p(color);
-        p.setWidth(6);
+        p.setWidth(m_itemSize / 10 > 0 ? m_itemSize / 5 : 1);
+
+        int itemSizeHalf = m_itemSize / 2;
 
         painter->setPen(p);
-        painter->drawEllipse(x, y, 15, 15);
+        painter->drawEllipse(x - itemSizeHalf, y - itemSizeHalf, m_itemSize, m_itemSize);
         auto idTxt = QString::number(i);
-        painter->drawText(x, y, idTxt);
+        painter->drawText(x, y - itemSizeHalf, idTxt);
     }
 
 
@@ -108,20 +121,28 @@ std::shared_ptr<QWidget> LucasKanadeTracker::getToolsWidget() {
     // Checkbox for tracking enable/disable
     auto *chkboxShouldTrack = new QCheckBox("Tracking enabled", ui.get());
     chkboxShouldTrack->setChecked(true);
-
     QObject::connect(chkboxShouldTrack, &QCheckBox::stateChanged,
         this, &LucasKanadeTracker::checkboxChanged_shouldTrack);
-
     layout->addWidget(chkboxShouldTrack);
 
     // Checkbox for pausing on invalid points
     auto *chkboxInvalidPoints = new QCheckBox("Pause on invalid Point", ui.get());
     chkboxInvalidPoints->setChecked(false);
-
     QObject::connect(chkboxInvalidPoints, &QCheckBox::stateChanged,
         this, &LucasKanadeTracker::checkboxChanged_invalidPoint);
-
     layout->addWidget(chkboxInvalidPoints);
+
+    // colors
+    auto validColorBtn = new QPushButton("Valid color", ui.get());
+    QObject::connect(validColorBtn, &QPushButton::clicked,
+        this, &LucasKanadeTracker::clicked_validColor);
+    layout->addWidget(validColorBtn);
+
+    auto invalidColorBtn = new QPushButton("Invalid color", ui.get());
+    QObject::connect(invalidColorBtn, &QPushButton::clicked,
+        this, &LucasKanadeTracker::clicked_invalidColor);
+    layout->addWidget(invalidColorBtn);
+
     // ===
 
     ui->setLayout(layout);
@@ -200,7 +221,6 @@ void LucasKanadeTracker::activateExistingPoint(QPoint pos) {
             }
         }
         m_currentActivePoint = currentClosestId;
-        std::cout << "activate " << m_currentActivePoint << std::endl;
     } else {
         Q_EMIT notifyGUI("There are no points to select");
         m_currentActivePoint = -1;
@@ -327,4 +347,29 @@ void LucasKanadeTracker::checkboxChanged_shouldTrack(int state) {
 
 void LucasKanadeTracker::checkboxChanged_invalidPoint(int state) {
     m_pauseOnInvalidPoint = state == Qt::Checked;
+}
+
+void LucasKanadeTracker::clicked_validColor() {
+    auto *colorDiagNormal = new QColorDialog();
+    colorDiagNormal->setCurrentColor(m_validColor);
+    QObject::connect(colorDiagNormal, &QColorDialog::colorSelected,
+        this, &LucasKanadeTracker::colorSelected_valid);
+    colorDiagNormal->open();
+}
+
+void LucasKanadeTracker::clicked_invalidColor() {
+    auto *colorDiagInvalid = new QColorDialog();
+    colorDiagInvalid->setCurrentColor(m_invalidColor);
+    QObject::connect(colorDiagInvalid, &QColorDialog::colorSelected,
+        this, &LucasKanadeTracker::colorSelected_invalid);
+    colorDiagInvalid->open();
+
+}
+
+void LucasKanadeTracker::colorSelected_invalid(const QColor &color) {
+    m_invalidColor = color;
+}
+
+void LucasKanadeTracker::colorSelected_valid(const QColor &color) {
+    m_validColor = color;
 }
