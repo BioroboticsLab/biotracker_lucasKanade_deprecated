@@ -9,6 +9,8 @@
 #include <biotracker/TrackingAlgorithm.h>
 #include <biotracker/Registry.h>
 
+using namespace BioTracker::Core;
+
 extern "C" {
     void registerTracker() {
         BioTracker::Core::Registry::getInstance().registerTrackerType<LucasKanadeTracker>("Lucas-Kanade");

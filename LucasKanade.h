@@ -18,13 +18,13 @@
  * Inspiered by:
  * https://github.com/Itseez/opencv/blob/master/samples/cpp/lkdemo.cpp
  */
-class LucasKanadeTracker : public TrackingAlgorithm {
+class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
     Q_OBJECT
   public:
-    LucasKanadeTracker(Settings &settings);
+    LucasKanadeTracker(BioTracker::Core::Settings &settings);
 
     void track(ulong frameNumber, const cv::Mat &frame) override;
-    void paint(ulong frameNumber, ProxyMat &m, View const &view = OriginalView) override;
+    void paint(ulong frameNumber, BioTracker::Core::ProxyMat &m, View const &view = OriginalView) override;
     void paintOverlay(ulong frameNumber, QPainter *painter, View const &view = OriginalView) override;
 
   private:

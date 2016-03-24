@@ -14,7 +14,7 @@ enum class InterestPointStatus {
     Non_Existing	// the point does not exist yet! (because the user
 };					// jumped back in time
 
-class InterestPoint : public ObjectModel {
+class InterestPoint : public BioTracker::Core::ObjectModel {
 public:
     InterestPoint();
     virtual ~InterestPoint();
