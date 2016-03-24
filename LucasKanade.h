@@ -118,6 +118,7 @@ private Q_SLOTS:
     void checkboxChanged_invalidPoint(int state);
     void clicked_validColor();
     void clicked_invalidColor();
+    void clicked_print();
     void colorSelected_invalid(const QColor &color);
     void colorSelected_valid(const QColor &color);
 

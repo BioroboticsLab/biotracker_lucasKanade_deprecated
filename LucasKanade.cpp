@@ -58,6 +58,12 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
         this, &LucasKanadeTracker::clicked_invalidColor);
     layout->addWidget(invalidColorBtn);
 
+    // print
+    auto printBtn = new QPushButton("Export", ui);
+    QObject::connect(printBtn, &QPushButton::clicked,
+        this, &LucasKanadeTracker::clicked_print);
+    layout->addWidget(printBtn);
+
     // ===
 
     ui->setLayout(layout);
@@ -183,6 +189,7 @@ void LucasKanadeTracker::tryCreateNewPoint(QPoint pos) {
     if (m_gray.empty()) {
         // this usually happens when users try to add interest points upon
         // starting the video as then there is no track being called yet..
+        Q_EMIT notifyGUI("First tracking could not be recorded as some data must be initialized. Please try again.");
         Q_EMIT forceTracking();
     } else {
         std::vector<InterestPointStatus> filter;
@@ -371,6 +378,41 @@ void LucasKanadeTracker::clicked_invalidColor() {
     QObject::connect(colorDiagInvalid, &QColorDialog::colorSelected,
         this, &LucasKanadeTracker::colorSelected_invalid);
     colorDiagInvalid->open();
+
+}
+
+void LucasKanadeTracker::clicked_print() {
+    // TODO: this is a hack (fast and ugly) -> make this nice with
+    // Biotracker-ish ways of handling data
+    size_t maxTs = 0;
+    for (auto o : m_trackedObjects) {
+        maxTs = o.maximumFrameNumber() > maxTs ? o.maximumFrameNumber() : maxTs;
+    }
+
+    QString output;
+    for (size_t frame = 0; frame < maxTs + 1; frame++) {
+        for (size_t i = 0; i < m_trackedObjects.size(); i++) {
+            auto o = m_trackedObjects[i];
+            if (o.hasValuesAtFrame(frame)) {
+                auto traj = o.get<InterestPoint>(frame);
+                if (traj->isValid()) {
+                    output.append(QString::number(frame));
+                    output.append(";");
+                    output.append(QString::number(i));
+                    output.append(";");
+                    output.append(QString::number(traj->getPosition().x));
+                    output.append(";");
+                    output.append(QString::number(traj->getPosition().y));
+                    output.append("\n");
+                }
+            }
+        }
+    }
+
+    QFile file("output.csv");
+    file.open(QIODevice::WriteOnly);
+    file.write(output.toLocal8Bit().data(), output.size());
+    file.close();
 
 }
 
