@@ -27,6 +27,12 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
     void paint(ulong frameNumber, BioTracker::Core::ProxyMat &m, View const &view = OriginalView) override;
     void paintOverlay(ulong frameNumber, QPainter *painter, View const &view = OriginalView) override;
 
+    std::set<Qt::Key> const &grabbedKeys() const override {
+        return m_grabbedKeys;
+    }
+
+    void keyPressEvent(QKeyEvent *ev) override;
+
   private:
     // --
     int m_itemSize; // defines how big elements are (so they fit well on big and small vids)
@@ -42,6 +48,8 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
     bool m_shouldTrack; // only when true the system should track
     bool m_pauseOnInvalidPoint; // if true, the application will pause when a point
                             // becomes invalid
+
+    std::set<Qt::Key> m_grabbedKeys;
 
     /**
      * @brief m_invalidOffset
@@ -71,6 +79,8 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 
     void activateExistingPoint(QPoint pos);
     void moveCurrentActivePointTo(QPoint pos);
+
+    void deleteCurrentActivePoint();
 
     /**
      * @brief autoFindInitPoints

@@ -29,6 +29,8 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     m_validColor(QColor::fromRgb(0, 0, 255)),
     m_invalidColor(QColor::fromRgb(255, 0, 0)){
 
+    m_grabbedKeys.insert(Qt::Key_D);
+
     // initialize gui
     auto ui = getToolsWidget();
     auto layout = new QVBoxLayout();
@@ -167,6 +169,12 @@ void LucasKanadeTracker::paintOverlay(ulong, QPainter *painter, const View &) {
 
 }
 
+void LucasKanadeTracker::keyPressEvent(QKeyEvent *ev) {
+    if (ev->key() == 68) { // => Key: 'd'
+        deleteCurrentActivePoint();
+    }
+}
+
 void LucasKanadeTracker::mouseReleaseEvent(QMouseEvent *e)
 {
     switch(e->modifiers()) {
@@ -259,6 +267,17 @@ void LucasKanadeTracker::moveCurrentActivePointTo(QPoint pos) {
             Q_EMIT update();
         }
 
+    }
+}
+
+void LucasKanadeTracker::deleteCurrentActivePoint() {
+    if (m_currentActivePoint >= 0) {
+        auto o = m_trackedObjects[m_currentActivePoint];
+        if (o.hasValuesAtFrame(m_currentFrame)) {
+            auto traj = o.get<InterestPoint>(m_currentFrame);
+            traj->setValidity(false);
+            Q_EMIT update();
+        }
     }
 }
 
