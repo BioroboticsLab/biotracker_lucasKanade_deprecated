@@ -70,7 +70,7 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
 }
 
 void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
-    const int perc_size = 45;
+    const int perc_size = 35;
     m_itemSize = imgOriginal.cols > imgOriginal.rows ? imgOriginal.rows / perc_size : imgOriginal.cols / perc_size;
 
     bool isStepForward = m_currentFrame == (frame - 1);
@@ -83,36 +83,36 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
 
 
         if (!currentPoints.empty()) {
-        std::vector<float> err;
-        if (m_prevGray.empty()) {
-            m_gray.copyTo(m_prevGray);
-        }
+            std::vector<float> err;
+            if (m_prevGray.empty()) {
+                m_gray.copyTo(m_prevGray);
+            }
 
-        // calculate pyramids:
-        const size_t maxLevel = 10;
-        std::vector<cv::Mat> prevPyr;
-        cv::buildOpticalFlowPyramid(m_prevGray, prevPyr, m_winSize, maxLevel);
+            // calculate pyramids:
+            const size_t maxLevel = 10;
+            std::vector<cv::Mat> prevPyr;
+            cv::buildOpticalFlowPyramid(m_prevGray, prevPyr, m_winSize, maxLevel);
 
-        std::vector<cv::Mat> pyr;
-        cv::buildOpticalFlowPyramid(m_gray, pyr, m_winSize, maxLevel);
+            std::vector<cv::Mat> pyr;
+            cv::buildOpticalFlowPyramid(m_gray, pyr, m_winSize, maxLevel);
 
-        std::vector<uchar> status;
-        std::vector<cv::Point2f> newPoints;
-        cv::calcOpticalFlowPyrLK(
-            prevPyr, /* prev */
-            pyr, /* next */
-            currentPoints,	/* prevPts */
-            newPoints, /* nextPts */
-            status,	/* status */
-            err	/* err */
-            ,m_winSize,	/* winSize */
-            0, /* maxLevel */
-            m_termcrit,	/* criteria */
-            0, /* flags */
-            0.001 /* minEigThreshold */
-        );
+            std::vector<uchar> status;
+            std::vector<cv::Point2f> newPoints;
+            cv::calcOpticalFlowPyrLK(
+                prevPyr, /* prev */
+                pyr, /* next */
+                currentPoints,	/* prevPts */
+                newPoints, /* nextPts */
+                status,	/* status */
+                err	/* err */
+                ,m_winSize,	/* winSize */
+                maxLevel, /* maxLevel */
+                m_termcrit,	/* criteria */
+                0, /* flags */
+                0.001 /* minEigThreshold */
+            );
 
-        updateCurrentPoints(frame, newPoints, status, filter);
+            updateCurrentPoints(frame, newPoints, status, filter);
         }
 
         cv::swap(m_prevGray, m_gray);
@@ -150,7 +150,11 @@ void LucasKanadeTracker::paintOverlay(ulong, QPainter *painter, const View &) {
         painter->setFont(font);
 
         QPen p(color);
-        p.setWidth(m_itemSize / 10 > 0 ? m_itemSize / 5 : 1);
+        if (i == static_cast<size_t>(m_currentActivePoint)) {
+            p.setStyle(Qt::PenStyle::DotLine);
+        }
+
+        p.setWidth(m_itemSize / 3 > 0 ? m_itemSize / 3 : 1);
 
         int itemSizeHalf = m_itemSize / 2;
 
@@ -236,6 +240,7 @@ void LucasKanadeTracker::activateExistingPoint(QPoint pos) {
             }
         }
         m_currentActivePoint = currentClosestId;
+        Q_EMIT update();
     } else {
         Q_EMIT notifyGUI("There are no points to select");
         m_currentActivePoint = -1;
