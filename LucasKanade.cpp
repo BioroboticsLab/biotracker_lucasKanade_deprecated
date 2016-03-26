@@ -433,10 +433,16 @@ void LucasKanadeTracker::clicked_print() {
         }
     }
 
-    QFile file("output.csv");
+    auto fileName = QFileDialog::getExistingDirectory();
+    fileName.append(QDir::separator()).append("output.csv");
+    QFile file(fileName);
     file.open(QIODevice::WriteOnly);
     file.write(output.toLocal8Bit().data(), output.size());
     file.close();
+
+    QString notification("Saved trajectories to file: ");
+    notification.append(fileName);
+    Q_EMIT notifyGUI(notification.toStdString());
 
 }
 
