@@ -25,6 +25,8 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     m_termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS,20,0.03),
     m_shouldTrack(true),
     m_pauseOnInvalidPoint(false),
+    m_winSizeSlider(new QSlider(getToolsWidget())),
+    m_winSizeValue(new QLabel(QString::number(m_winSize.height), getToolsWidget())),
     m_invalidOffset(-99999, -99999),
     m_validColor(QColor::fromRgb(0, 0, 255)),
     m_invalidColor(QColor::fromRgb(255, 0, 0)){
@@ -33,38 +35,54 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
 
     // initialize gui
     auto ui = getToolsWidget();
-    auto layout = new QVBoxLayout();
+    auto layout = new QGridLayout();
 
     // Checkbox for tracking enable/disable
     auto *chkboxShouldTrack = new QCheckBox("Tracking enabled", ui);
     chkboxShouldTrack->setChecked(true);
     QObject::connect(chkboxShouldTrack, &QCheckBox::stateChanged,
         this, &LucasKanadeTracker::checkboxChanged_shouldTrack);
-    layout->addWidget(chkboxShouldTrack);
+    layout->addWidget(chkboxShouldTrack, 0, 0, 1, 3);
 
     // Checkbox for pausing on invalid points
     auto *chkboxInvalidPoints = new QCheckBox("Pause on invalid Point", ui);
     chkboxInvalidPoints->setChecked(false);
     QObject::connect(chkboxInvalidPoints, &QCheckBox::stateChanged,
         this, &LucasKanadeTracker::checkboxChanged_invalidPoint);
-    layout->addWidget(chkboxInvalidPoints);
+    layout->addWidget(chkboxInvalidPoints, 1, 0, 1, 3);
+
+
+    // winsize
+    auto *lbl_winSize = new QLabel("window size:", ui);
+    m_winSizeSlider->setMinimum(10);
+    m_winSizeSlider->setMaximum(m_winSize.height);
+    m_winSizeSlider->setOrientation(Qt::Orientation::Horizontal);
+    m_winSizeSlider->setValue(m_winSize.height);
+    QObject::connect(m_winSizeSlider, &QSlider::valueChanged,
+        this, &LucasKanadeTracker::sliderChanged_winSize);
+    layout->addWidget(lbl_winSize, 2, 0, 1, 1);
+    layout->addWidget(m_winSizeValue, 2, 1, 1, 1);
+    layout->addWidget(m_winSizeSlider, 2, 2, 1, 1);
 
     // colors
+    auto lbl_color = new QLabel("Change color:", ui);
+    layout->addWidget(lbl_color, 3, 0, 1, 1);
+
     auto validColorBtn = new QPushButton("Valid color", ui);
     QObject::connect(validColorBtn, &QPushButton::clicked,
         this, &LucasKanadeTracker::clicked_validColor);
-    layout->addWidget(validColorBtn);
+    layout->addWidget(validColorBtn, 3, 1, 1, 1);
 
     auto invalidColorBtn = new QPushButton("Invalid color", ui);
     QObject::connect(invalidColorBtn, &QPushButton::clicked,
         this, &LucasKanadeTracker::clicked_invalidColor);
-    layout->addWidget(invalidColorBtn);
+    layout->addWidget(invalidColorBtn, 4, 1, 1, 1);
 
     // print
     auto printBtn = new QPushButton("Export", ui);
     QObject::connect(printBtn, &QPushButton::clicked,
         this, &LucasKanadeTracker::clicked_print);
-    layout->addWidget(printBtn);
+    layout->addWidget(printBtn, 6, 0, 1, 1);
 
     // ===
 
@@ -72,8 +90,24 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
 }
 
 void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
-    const int perc_size = 35;
-    m_itemSize = imgOriginal.cols > imgOriginal.rows ? imgOriginal.rows / perc_size : imgOriginal.cols / perc_size;
+
+    // Landscape vs	portrait
+    // [xxxx]		[xx]
+    // [xxxx]		[xx]
+    //       		[xx]
+    //
+    const bool isLandscape = imgOriginal.rows > imgOriginal.cols;
+
+    // make sure that the circles are in "good" size, regardless of the video resolution (tiny vs gigantic)
+    const int perc_size = 45;
+    m_itemSize = !isLandscape ? imgOriginal.rows / perc_size : imgOriginal.cols / perc_size;
+
+    // make the winSize adaptable
+    const int currentMaxWinSize = m_winSizeSlider->maximum();
+    const int newMaxWinSize = isLandscape ? imgOriginal.cols / 10 : imgOriginal.rows / 10;
+    if (currentMaxWinSize != newMaxWinSize && newMaxWinSize > m_winSizeSlider->minimum()) {
+        m_winSizeSlider->setMaximum(newMaxWinSize);
+    }
 
     bool isStepForward = m_currentFrame == (frame - 1);
     m_currentFrame = frame; // TODO must this be protected from other threads?
@@ -452,4 +486,12 @@ void LucasKanadeTracker::colorSelected_invalid(const QColor &color) {
 
 void LucasKanadeTracker::colorSelected_valid(const QColor &color) {
     m_validColor = color;
+}
+
+void LucasKanadeTracker::sliderChanged_winSize(int value) {
+    m_winSize.height = value;
+    m_winSize.width = value;
+    m_subPixWinSize.height = value;
+    m_subPixWinSize.width = value;
+    m_winSizeValue->setText(QString::number(value));
 }

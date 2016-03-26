@@ -6,6 +6,8 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QCheckBox>
+#include <QSlider>
+#include <QLabel>
 #include <biotracker/TrackingAlgorithm.h>
 
 #include <opencv2/video/tracking.hpp>
@@ -37,8 +39,8 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
     // --
     int m_itemSize; // defines how big elements are (so they fit well on big and small vids)
 
-    const cv::Size m_subPixWinSize;
-    const cv::Size m_winSize;
+    cv::Size m_subPixWinSize;
+    cv::Size m_winSize;
     cv::TermCriteria m_termcrit;
     const int MAX_COUNT = 500;
     cv::Mat m_gray;
@@ -48,6 +50,10 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
     bool m_shouldTrack; // only when true the system should track
     bool m_pauseOnInvalidPoint; // if true, the application will pause when a point
                             // becomes invalid
+
+    QSlider *m_winSizeSlider; // as we want to adapt the values of this class all the time we need to
+                            // keep it accessible from other methods in the object..
+    QLabel *m_winSizeValue;
 
     std::set<Qt::Key> m_grabbedKeys;
 
@@ -131,5 +137,6 @@ private Q_SLOTS:
     void clicked_print();
     void colorSelected_invalid(const QColor &color);
     void colorSelected_valid(const QColor &color);
+    void sliderChanged_winSize(int value);
 
 };
