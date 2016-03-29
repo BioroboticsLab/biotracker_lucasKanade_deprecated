@@ -109,7 +109,9 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
         m_winSizeSlider->setMaximum(newMaxWinSize);
     }
 
-    bool isStepForward = m_currentFrame == (frame - 1);
+    //bool isStepForward = m_currentFrame == (frame - 1);
+    bool isStepForward = true; // TODO figure what we want: now the tracker will always track!
+
     m_currentFrame = frame; // TODO must this be protected from other threads?
     if ((frame == 0 || isStepForward) && m_shouldTrack) {
         cv::cvtColor(imgOriginal, m_gray, cv::COLOR_BGR2GRAY);
