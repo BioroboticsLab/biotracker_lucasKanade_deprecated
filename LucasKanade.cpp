@@ -266,6 +266,8 @@ void LucasKanadeTracker::tryCreateNewPoint(QPoint pos) {
         o.add(m_currentFrame, p);
         m_trackedObjects.push_back(o);
 
+        m_currentActivePoint = id;
+
         Q_EMIT update();
     }
 }
