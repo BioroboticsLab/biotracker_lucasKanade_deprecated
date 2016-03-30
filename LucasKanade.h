@@ -140,8 +140,6 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 
     cv::Point2f toCv(QPoint p);
 
-    void updateHistorySlider(int frameNbr);
-
     int maximumHistory();
 
     void updateHistoryText();

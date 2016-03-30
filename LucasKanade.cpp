@@ -57,7 +57,7 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     // history
     auto *lbl_history = new QLabel("history", ui);
     m_historySlider->setMinimum(0);
-    m_historySlider->setMaximum(15);
+    m_historySlider->setMaximum(maximumHistory());
     m_historySlider->setOrientation(Qt::Orientation::Horizontal);
     layout->addWidget(lbl_history, 2, 0, 1, 1);
     layout->addWidget(m_historyValue, 2, 2, 1, 1);
@@ -165,7 +165,6 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
             );
 
             updateCurrentPoints(frame, newPoints, status, filter);
-            updateHistorySlider(static_cast<int>(frame));
             updateHistoryText();
         }
 
@@ -184,13 +183,12 @@ void LucasKanadeTracker::paintOverlay(ulong, QPainter *painter, const View &) {
 
     // fill the history
     std::vector<std::vector<cv::Point2f>> history;
-    std::vector<InterestPointStatus> dummyfilter;
     for (size_t t = 1; t < m_currentHistory; t++) {
-        int histTime = m_currentHistory - t;
+        int histTime = m_currentFrame - t;
         if (histTime < 0) {
             break;
         }
-        dummyfilter.clear();
+        std::vector<InterestPointStatus> dummyfilter;
         std::vector<cv::Point2f> histPoints = getCurrentPoints(histTime, dummyfilter);
         history.push_back(histPoints);
     }
@@ -233,16 +231,15 @@ void LucasKanadeTracker::paintOverlay(ulong, QPainter *painter, const View &) {
         painter->drawRect(x, y, 1, 1);
 
         // paint History
-        for (size_t t = 1; t < m_currentHistory; t++) {
-            int histTime = m_currentHistory - t;
-            if (histTime < 0) {
-                break;
-            }
-            auto histPoint = history[histTime][i];
+        color.setAlpha(100);
+        QPen histPen(color);
+        painter->setPen(histPen);
+        for (auto histPoints : history) {
+            auto histPoint = histPoints[i];
             int x = static_cast<int>(histPoint.x);
             int y = static_cast<int>(histPoint.y);
             if (x > 0 && y > 0) { // otherwise the point is invalid
-                painter->drawRect(x, y, 2, 2);
+                painter->drawRect(x, y, 1, 1);
             }
         }
 
@@ -465,20 +462,8 @@ cv::Point2f LucasKanadeTracker::toCv(QPoint pos) {
     return point;
 }
 
-void LucasKanadeTracker::updateHistorySlider(int frameNbr) {
-    if (m_lastTrackedFrame < frameNbr || m_lastTrackedFrame == -1) {
-        m_lastTrackedFrame = frameNbr;
-    }
-
-    const int currentMaxHist = m_historySlider->maximum();
-    const int calculatedMaxHist = maximumHistory();
-    if (calculatedMaxHist > currentMaxHist) {
-        m_historySlider->setMaximum(calculatedMaxHist);
-    }
-}
-
 int LucasKanadeTracker::maximumHistory() {
-    return m_lastTrackedFrame - m_firstTrackedFrame;
+    return 150;
 }
 
 void LucasKanadeTracker::updateHistoryText() {
