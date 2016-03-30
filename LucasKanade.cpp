@@ -113,18 +113,19 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
     bool isStepForward = true; // TODO figure what we want: now the tracker will always track!
 
     m_currentFrame = frame; // TODO must this be protected from other threads?
+    cv::cvtColor(imgOriginal, m_gray, cv::COLOR_BGR2GRAY);
+
     if ((frame == 0 || isStepForward) && m_shouldTrack) {
-        cv::cvtColor(imgOriginal, m_gray, cv::COLOR_BGR2GRAY);
 
         std::vector<InterestPointStatus> filter;
         std::vector<cv::Point2f> currentPoints = getCurrentPoints(frame - 1, filter);
 
+        if (m_prevGray.empty()) {
+            m_gray.copyTo(m_prevGray);
+        }
 
         if (!currentPoints.empty()) {
             std::vector<float> err;
-            if (m_prevGray.empty()) {
-                m_gray.copyTo(m_prevGray);
-            }
 
             // calculate pyramids:
             const size_t maxLevel = 10;
