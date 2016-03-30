@@ -27,6 +27,8 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     m_pauseOnInvalidPoint(false),
     m_winSizeSlider(new QSlider(getToolsWidget())),
     m_winSizeValue(new QLabel(QString::number(m_winSize.height), getToolsWidget())),
+    m_historySlider(new QSlider(getToolsWidget())),
+    m_historyValue(new QLabel("0", getToolsWidget())),
     m_invalidOffset(-99999, -99999),
     m_validColor(QColor::fromRgb(0, 0, 255)),
     m_invalidColor(QColor::fromRgb(255, 0, 0)){
@@ -52,6 +54,17 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     layout->addWidget(chkboxInvalidPoints, 1, 0, 1, 3);
 
 
+    // history
+    auto *lbl_history = new QLabel("history", ui);
+    m_historySlider->setMinimum(0);
+    m_historySlider->setMaximum(15);
+    m_historySlider->setOrientation(Qt::Orientation::Horizontal);
+    layout->addWidget(lbl_history, 2, 0, 1, 1);
+    layout->addWidget(m_historyValue, 2, 2, 1, 1);
+    layout->addWidget(m_historySlider, 3, 0, 1, 3);
+    QObject::connect(m_historySlider, &QSlider::valueChanged,
+        this, &LucasKanadeTracker::sliderChanged_history);
+
     // winsize
     auto *lbl_winSize = new QLabel("window size:", ui);
     m_winSizeSlider->setMinimum(10);
@@ -60,29 +73,29 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     m_winSizeSlider->setValue(m_winSize.height);
     QObject::connect(m_winSizeSlider, &QSlider::valueChanged,
         this, &LucasKanadeTracker::sliderChanged_winSize);
-    layout->addWidget(lbl_winSize, 2, 0, 1, 1);
-    layout->addWidget(m_winSizeValue, 2, 1, 1, 1);
-    layout->addWidget(m_winSizeSlider, 2, 2, 1, 1);
+    layout->addWidget(lbl_winSize, 4, 0, 1, 1);
+    layout->addWidget(m_winSizeValue, 5, 2, 1, 1);
+    layout->addWidget(m_winSizeSlider, 5, 0, 1, 2);
 
     // colors
     auto lbl_color = new QLabel("Change color:", ui);
-    layout->addWidget(lbl_color, 3, 0, 1, 1);
+    layout->addWidget(lbl_color, 6, 0, 1, 1);
 
     auto validColorBtn = new QPushButton("Valid color", ui);
     QObject::connect(validColorBtn, &QPushButton::clicked,
         this, &LucasKanadeTracker::clicked_validColor);
-    layout->addWidget(validColorBtn, 3, 1, 1, 1);
+    layout->addWidget(validColorBtn, 6, 1, 1, 1);
 
     auto invalidColorBtn = new QPushButton("Invalid color", ui);
     QObject::connect(invalidColorBtn, &QPushButton::clicked,
         this, &LucasKanadeTracker::clicked_invalidColor);
-    layout->addWidget(invalidColorBtn, 4, 1, 1, 1);
+    layout->addWidget(invalidColorBtn, 7, 1, 1, 1);
 
     // print
     auto printBtn = new QPushButton("Export", ui);
     QObject::connect(printBtn, &QPushButton::clicked,
         this, &LucasKanadeTracker::clicked_print);
-    layout->addWidget(printBtn, 6, 0, 1, 1);
+    layout->addWidget(printBtn, 8, 0, 1, 1);
 
     // ===
 
@@ -152,6 +165,8 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
             );
 
             updateCurrentPoints(frame, newPoints, status, filter);
+            updateHistorySlider(static_cast<int>(frame));
+            updateHistoryText();
         }
 
         cv::swap(m_prevGray, m_gray);
@@ -166,6 +181,20 @@ void LucasKanadeTracker::paintOverlay(ulong, QPainter *painter, const View &) {
 
     std::vector<InterestPointStatus> filter;
     std::vector<cv::Point2f> newPoints = getCurrentPoints(m_currentFrame, filter);
+
+    // fill the history
+    std::vector<std::vector<cv::Point2f>> history;
+    std::vector<InterestPointStatus> dummyfilter;
+    for (size_t t = 1; t < m_currentHistory; t++) {
+        int histTime = m_currentHistory - t;
+        if (histTime < 0) {
+            break;
+        }
+        dummyfilter.clear();
+        std::vector<cv::Point2f> histPoints = getCurrentPoints(histTime, dummyfilter);
+        history.push_back(histPoints);
+    }
+
 
     size_t i;
     for (i = 0; i < newPoints.size(); i++) {
@@ -201,6 +230,22 @@ void LucasKanadeTracker::paintOverlay(ulong, QPainter *painter, const View &) {
         painter->drawEllipse(x - itemSizeHalf, y - itemSizeHalf, m_itemSize, m_itemSize);
         auto idTxt = QString::number(i);
         painter->drawText(x, y - itemSizeHalf, idTxt);
+        painter->drawRect(x, y, 1, 1);
+
+        // paint History
+        for (size_t t = 1; t < m_currentHistory; t++) {
+            int histTime = m_currentHistory - t;
+            if (histTime < 0) {
+                break;
+            }
+            auto histPoint = history[histTime][i];
+            int x = static_cast<int>(histPoint.x);
+            int y = static_cast<int>(histPoint.y);
+            if (x > 0 && y > 0) { // otherwise the point is invalid
+                painter->drawRect(x, y, 2, 2);
+            }
+        }
+
     }
 
 
@@ -267,6 +312,10 @@ void LucasKanadeTracker::tryCreateNewPoint(QPoint pos) {
         m_trackedObjects.push_back(o);
 
         m_currentActivePoint = id;
+
+        if (m_firstTrackedFrame > static_cast<int>(m_currentFrame)) { // for the history calculation
+            m_firstTrackedFrame = m_currentFrame;
+        }
 
         Q_EMIT update();
     }
@@ -416,6 +465,30 @@ cv::Point2f LucasKanadeTracker::toCv(QPoint pos) {
     return point;
 }
 
+void LucasKanadeTracker::updateHistorySlider(int frameNbr) {
+    if (m_lastTrackedFrame < frameNbr || m_lastTrackedFrame == -1) {
+        m_lastTrackedFrame = frameNbr;
+    }
+
+    const int currentMaxHist = m_historySlider->maximum();
+    const int calculatedMaxHist = maximumHistory();
+    if (calculatedMaxHist > currentMaxHist) {
+        m_historySlider->setMaximum(calculatedMaxHist);
+    }
+}
+
+int LucasKanadeTracker::maximumHistory() {
+    return m_lastTrackedFrame - m_firstTrackedFrame;
+}
+
+void LucasKanadeTracker::updateHistoryText() {
+    const int maxSize = maximumHistory();
+    m_historyValue->setText(QString::number(m_currentHistory).
+        append("/").
+        append(QString::number(maxSize)));
+
+}
+
 // ============== GUI HANDLING ==================
 
 void LucasKanadeTracker::checkboxChanged_shouldTrack(int state) {
@@ -499,4 +572,9 @@ void LucasKanadeTracker::sliderChanged_winSize(int value) {
     m_subPixWinSize.height = value;
     m_subPixWinSize.width = value;
     m_winSizeValue->setText(QString::number(value));
+}
+
+void LucasKanadeTracker::sliderChanged_history(int value) {
+    m_currentHistory = value;
+    updateHistoryText();
 }

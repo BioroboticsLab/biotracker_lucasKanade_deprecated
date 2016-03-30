@@ -55,6 +55,9 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
                             // keep it accessible from other methods in the object..
     QLabel *m_winSizeValue;
 
+    QSlider *m_historySlider; // define how many elements are shown for history
+    QLabel *m_historyValue;
+
     std::set<Qt::Key> m_grabbedKeys;
 
     /**
@@ -67,6 +70,14 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
      * The currently active point that can be moved by the mouse curor
      */
     int m_currentActivePoint = -1;
+
+    // to calculate how big the history can be we need to know when we had the very first tracked point in time...
+    int m_firstTrackedFrame = -1;
+
+    // ... and also the very last
+    int m_lastTrackedFrame = -1;
+
+    size_t m_currentHistory = 0;
 
     QColor m_validColor;
     QColor m_invalidColor;
@@ -129,6 +140,12 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 
     cv::Point2f toCv(QPoint p);
 
+    void updateHistorySlider(int frameNbr);
+
+    int maximumHistory();
+
+    void updateHistoryText();
+
 private Q_SLOTS:
     void checkboxChanged_shouldTrack(int state);
     void checkboxChanged_invalidPoint(int state);
@@ -138,5 +155,6 @@ private Q_SLOTS:
     void colorSelected_invalid(const QColor &color);
     void colorSelected_valid(const QColor &color);
     void sliderChanged_winSize(int value);
+    void sliderChanged_history(int value);
 
 };
