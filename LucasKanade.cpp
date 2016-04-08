@@ -272,6 +272,11 @@ void LucasKanadeTracker::mouseReleaseEvent(QMouseEvent *e)
     }
 }
 
+void LucasKanadeTracker::inputChanged() {
+    // reset tracked points
+    m_trackedObjects.clear();
+}
+
 // =========== P R I V A T E = F U N C S ============
 
 

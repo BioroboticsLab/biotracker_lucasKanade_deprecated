@@ -85,6 +85,8 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 
     void mouseReleaseEvent(QMouseEvent *e) override;
 
+    void inputChanged() override;
+
     /**
      * @brief createNewPoint
      * Tries to add a new point, if it is not too close to an already
