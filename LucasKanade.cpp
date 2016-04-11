@@ -567,4 +567,5 @@ void LucasKanadeTracker::sliderChanged_winSize(int value) {
 void LucasKanadeTracker::sliderChanged_history(int value) {
     m_currentHistory = value;
     updateHistoryText();
+    Q_EMIT update();
 }
