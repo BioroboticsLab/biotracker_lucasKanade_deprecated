@@ -244,10 +244,7 @@ void LucasKanadeTracker::paintOverlay(ulong, QPainter *painter, const View &) {
                 painter->drawRect(x, y, 1, 1);
             }
         }
-
     }
-
-
 }
 
 void LucasKanadeTracker::keyPressEvent(QKeyEvent *ev) {
