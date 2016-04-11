@@ -5,6 +5,7 @@
 #include <QPushButton>
 #include <QPainter>
 #include <QColorDialog>
+#include <QDateTime>
 
 #include <biotracker/TrackingAlgorithm.h>
 #include <biotracker/Registry.h>
@@ -536,7 +537,13 @@ void LucasKanadeTracker::clicked_print() {
     }
 
     auto fileName = QFileDialog::getExistingDirectory();
-    fileName.append(QDir::separator()).append("output.csv");
+
+    // the file name should be: output_lk_YEAR_MONTH_DAY_H_S.csv
+    fileName.append(QDir::separator()).append("output_lk_");
+    QDateTime currentTime = QDateTime::currentDateTime();
+    fileName.append(currentTime.toString("yyyy_MM_dd_hh_ss"));
+    fileName.append(".csv");
+
     QFile file(fileName);
     file.open(QIODevice::WriteOnly);
     file.write(output.toLocal8Bit().data(), output.size());
