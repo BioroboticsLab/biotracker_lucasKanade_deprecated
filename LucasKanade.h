@@ -146,6 +146,15 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 
     void updateHistoryText();
 
+    /**
+     * @brief clampPosition
+     * make sure that the elements are in the range of the image
+     * @param pos list of positions
+     * @param w current image width
+     * @param h current image height
+     */
+    void clampPosition(std::vector<cv::Point2f> &pos, int w, int h);
+
 private Q_SLOTS:
     void checkboxChanged_shouldTrack(int state);
     void checkboxChanged_invalidPoint(int state);

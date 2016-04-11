@@ -165,6 +165,7 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
                 0.001 /* minEigThreshold */
             );
 
+            clampPosition(newPoints, m_gray.cols, m_gray.rows);
             updateCurrentPoints(frame, newPoints, status, filter);
             updateHistoryText();
         }
@@ -478,6 +479,21 @@ void LucasKanadeTracker::updateHistoryText() {
         append("/").
         append(QString::number(maxSize)));
 
+}
+
+void LucasKanadeTracker::clampPosition(std::vector<cv::Point2f> &pos, int w, int h) {
+    for (cv::Point2f &p : pos) {
+        if (p.x < 0) {
+            p.x = 0;
+        } else if (p.x > w) {
+            p.x = w - 1;
+        }
+        if (p.y < 0) {
+            p.y = 0;
+        } else if (p.y > h) {
+            p.y = h - 1;
+        }
+    }
 }
 
 // ============== GUI HANDLING ==================
