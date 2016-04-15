@@ -103,7 +103,7 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     ui->setLayout(layout);
 }
 
-void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
+void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
 
     // Landscape vs	portrait
     // [xxxx]		[xx]
@@ -132,7 +132,7 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
     if ((frame == 0 || isStepForward) && m_shouldTrack) {
 
         std::vector<InterestPointStatus> filter;
-        std::vector<cv::Point2f> currentPoints = getCurrentPoints(frame - 1, filter);
+        std::vector<cv::Point2f> currentPoints = getCurrentPoints(static_cast<ulong>(frame) - 1, filter);
 
         if (m_prevGray.empty()) {
             m_gray.copyTo(m_prevGray);
@@ -166,7 +166,7 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
             );
 
             clampPosition(newPoints, m_gray.cols, m_gray.rows);
-            updateCurrentPoints(frame, newPoints, status, filter);
+            updateCurrentPoints(static_cast<ulong>(frame), newPoints, status, filter);
             updateHistoryText();
         }
 
@@ -174,22 +174,21 @@ void LucasKanadeTracker::track(ulong frame, const cv::Mat &imgOriginal) {
     }
 }
 
-void LucasKanadeTracker::paint(ulong, ProxyMat &, const TrackingAlgorithm::View &) {
+void LucasKanadeTracker::paint(size_t, ProxyMat &, const TrackingAlgorithm::View &) {
 
 }
 
-void LucasKanadeTracker::paintOverlay(ulong, QPainter *painter, const View &) {
+void LucasKanadeTracker::paintOverlay(size_t, QPainter *painter, const View &) {
 
     std::vector<InterestPointStatus> filter;
-    std::vector<cv::Point2f> newPoints = getCurrentPoints(m_currentFrame, filter);
+    std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(m_currentFrame), filter);
 
     // fill the history
     std::vector<std::vector<cv::Point2f>> history;
     for (size_t t = 1; t < m_currentHistory; t++) {
-        int histTime = m_currentFrame - t;
-        if (histTime < 0) {
-            break;
-        }
+		if (t > m_currentFrame) break;
+        ulong histTime = static_cast<ulong>(m_currentFrame - t);
+        
         std::vector<InterestPointStatus> dummyfilter;
         std::vector<cv::Point2f> histPoints = getCurrentPoints(histTime, dummyfilter);
         history.push_back(histPoints);
@@ -291,7 +290,7 @@ void LucasKanadeTracker::tryCreateNewPoint(QPoint pos) {
         Q_EMIT forceTracking();
     } else {
         std::vector<InterestPointStatus> filter;
-        std::vector<cv::Point2f> newPoints = getCurrentPoints(m_currentFrame, filter);
+        std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(m_currentFrame), filter);
         cv::Point2f point = toCv(pos);
         for (auto otherPos : newPoints) {
             if (cv::norm(point - otherPos) <= 5) {
@@ -315,10 +314,10 @@ void LucasKanadeTracker::tryCreateNewPoint(QPoint pos) {
         o.add(m_currentFrame, p);
         m_trackedObjects.push_back(o);
 
-        m_currentActivePoint = id;
+        m_currentActivePoint = static_cast<int>(id);
 
         if (m_firstTrackedFrame > static_cast<int>(m_currentFrame)) { // for the history calculation
-            m_firstTrackedFrame = m_currentFrame;
+            m_firstTrackedFrame = static_cast<int>(m_currentFrame);
         }
 
         Q_EMIT update();
@@ -329,7 +328,7 @@ void LucasKanadeTracker::activateExistingPoint(QPoint pos) {
     if (m_trackedObjects.size() > 0) {
         cv::Point2f point = toCv(pos);
         std::vector<InterestPointStatus> filter;
-        std::vector<cv::Point2f> newPoints = getCurrentPoints(m_currentFrame, filter);
+        std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(m_currentFrame), filter);
         size_t currentClosestId = 0;
         double currentMinDist = cv::norm(point - newPoints[0]);
         for (size_t i = 1; i < newPoints.size(); i++) {
@@ -339,7 +338,7 @@ void LucasKanadeTracker::activateExistingPoint(QPoint pos) {
                 currentClosestId = i;
             }
         }
-        m_currentActivePoint = currentClosestId;
+        m_currentActivePoint = static_cast<int>(currentClosestId);
         Q_EMIT update();
     } else {
         Q_EMIT notifyGUI("There are no points to select");
