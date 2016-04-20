@@ -40,13 +40,6 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     auto ui = getToolsWidget();
     auto layout = new QGridLayout();
 
-    // Checkbox for tracking enable/disable
-    auto *chkboxShouldTrack = new QCheckBox("Tracking enabled", ui);
-    chkboxShouldTrack->setChecked(true);
-    QObject::connect(chkboxShouldTrack, &QCheckBox::stateChanged,
-        this, &LucasKanadeTracker::checkboxChanged_shouldTrack);
-    layout->addWidget(chkboxShouldTrack, 0, 0, 1, 3);
-
     // Checkbox for pausing on invalid points
     auto *chkboxInvalidPoints = new QCheckBox("Pause on invalid Point", ui);
     chkboxInvalidPoints->setChecked(false);
@@ -491,11 +484,6 @@ void LucasKanadeTracker::clampPosition(std::vector<cv::Point2f> &pos, int w, int
 }
 
 // ============== GUI HANDLING ==================
-
-void LucasKanadeTracker::checkboxChanged_shouldTrack(int state) {
-    m_shouldTrack = state == Qt::Checked;
-
-}
 
 void LucasKanadeTracker::checkboxChanged_invalidPoint(int state) {
     m_pauseOnInvalidPoint = state == Qt::Checked;
