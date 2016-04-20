@@ -104,7 +104,6 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
 }
 
 void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
-
     // Landscape vs	portrait
     // [xxxx]		[xx]
     // [xxxx]		[xx]
@@ -178,16 +177,15 @@ void LucasKanadeTracker::paint(size_t, ProxyMat &, const TrackingAlgorithm::View
 
 }
 
-void LucasKanadeTracker::paintOverlay(size_t, QPainter *painter, const View &) {
-
+void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, const View &) {
     std::vector<InterestPointStatus> filter;
-    std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(m_currentFrame), filter);
+    std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(currentFrame), filter);
 
     // fill the history
     std::vector<std::vector<cv::Point2f>> history;
     for (size_t t = 1; t < m_currentHistory; t++) {
-		if (t > m_currentFrame) break;
-        ulong histTime = static_cast<ulong>(m_currentFrame - t);
+        if (t > currentFrame) break;
+        ulong histTime = static_cast<ulong>(currentFrame - t);
         
         std::vector<InterestPointStatus> dummyfilter;
         std::vector<cv::Point2f> histPoints = getCurrentPoints(histTime, dummyfilter);
@@ -380,7 +378,7 @@ std::vector<cv::Point2f> LucasKanadeTracker::getCurrentPoints(
         ulong frameNbr, std::vector<InterestPointStatus> &filter) {
     // TODO: make this implementation more efficient.. please..
     // TODO: find a nicer solution for the filter-issue
-    // we want the filter to be empty!
+    // we want the filter to be empty as we fill it up here!
     assert(filter.size() == 0);
 
     filter.reserve(m_trackedObjects.size());
