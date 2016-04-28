@@ -7,6 +7,7 @@
 #include <QColorDialog>
 #include <QDateTime>
 
+#include <QFileDialog>
 #include <biotracker/TrackingAlgorithm.h>
 #include <biotracker/Registry.h>
 
@@ -469,6 +470,9 @@ void LucasKanadeTracker::updateHistoryText() {
 }
 
 void LucasKanadeTracker::clampPosition(std::vector<cv::Point2f> &pos, int w, int h) {
+    // When points are outside the image boarders they cannot be rescued anymore
+    // This function clamps them to be inside the image again which is actually not
+    // very nice. See: https://github.com/BioroboticsLab/biotracker_lucasKanade/issues/8
     for (cv::Point2f &p : pos) {
         if (p.x < 0) {
             p.x = 0;
