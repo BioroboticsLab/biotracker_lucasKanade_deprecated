@@ -21,6 +21,7 @@ extern "C" {
 
 LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     TrackingAlgorithm(settings),
+    m_setUserStates(m_numberOfUserStates),
     m_itemSize(1),
     m_subPixWinSize(10, 10),
     m_winSize(31, 31),
@@ -40,6 +41,18 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     // initialize gui
     auto ui = getToolsWidget();
     auto layout = new QGridLayout();
+
+    // User status
+    for (size_t i = 0; i < m_numberOfUserStates; i++) {
+        auto text = QString("Status ");
+        text.append(QString::number(i+1));
+        auto *chkboxUserStatus = new QCheckBox(text, ui);
+        chkboxUserStatus->setAccessibleName(QString::number(i)); // hack to re-identify the checkbox
+        QObject::connect(chkboxUserStatus, &QCheckBox::stateChanged,
+            this, &LucasKanadeTracker::checkboxChanged_userStatus);
+        layout->addWidget(chkboxUserStatus, 9, i, 1, 1);
+    }
+
 
     // Checkbox for pausing on invalid points
     auto *chkboxInvalidPoints = new QCheckBox("Pause on invalid Point", ui);
@@ -98,6 +111,7 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
 }
 
 void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
+    m_userStatusMutex.Lock();
     // Landscape vs	portrait
     // [xxxx]		[xx]
     // [xxxx]		[xx]
@@ -161,10 +175,12 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
             clampPosition(newPoints, m_gray.cols, m_gray.rows);
             updateCurrentPoints(static_cast<ulong>(frame), newPoints, status, filter);
             updateHistoryText();
+            updateUserStates(frame);
         }
 
         cv::swap(m_prevGray, m_gray);
     }
+    m_userStatusMutex.Unlock();
 }
 
 void LucasKanadeTracker::paint(size_t, ProxyMat &, const TrackingAlgorithm::View &) {
@@ -487,10 +503,38 @@ void LucasKanadeTracker::clampPosition(std::vector<cv::Point2f> &pos, int w, int
     }
 }
 
+void LucasKanadeTracker::updateUserStates(size_t currentFrame) {
+    if (m_currentActivePoint >= 0) {
+        auto o = m_trackedObjects[m_currentActivePoint];
+        if (o.hasValuesAtFrame(m_currentFrame)) {
+            // get interest point and set the user-defined value
+            auto traj = o.get<InterestPoint>(currentFrame);
+
+            // TODO: make this more efficient and nicer overall..
+            for (size_t i = 0; i < m_numberOfUserStates; i++) {
+                if (m_setUserStates[i]) {
+                    traj->addToUserStatus(i);
+                } else {
+                    traj->removeFromUserStatus(i);
+                }
+            }
+        }
+    }
+
+}
+
 // ============== GUI HANDLING ==================
 
 void LucasKanadeTracker::checkboxChanged_invalidPoint(int state) {
     m_pauseOnInvalidPoint = state == Qt::Checked;
+}
+
+void LucasKanadeTracker::checkboxChanged_userStatus(int state) {
+    m_userStatusMutex.Lock();
+    QCheckBox *sender = qobject_cast<QCheckBox*>(QObject::sender());
+    size_t i = sender->accessibleName().toInt();
+    m_setUserStates[i] = (state == Qt::Checked);
+    m_userStatusMutex.Unlock();
 }
 
 void LucasKanadeTracker::clicked_validColor() {
@@ -532,6 +576,8 @@ void LucasKanadeTracker::clicked_print() {
                     output.append(QString::number(traj->getPosition().x));
                     output.append(";");
                     output.append(QString::number(traj->getPosition().y));
+                    output.append(";");
+                    output.append(QString::number(traj->getStatusAsI()));
                     output.append("\n");
                 }
             }

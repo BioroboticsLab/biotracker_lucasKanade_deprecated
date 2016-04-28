@@ -9,6 +9,7 @@
 #include <QSlider>
 #include <QLabel>
 #include <biotracker/TrackingAlgorithm.h>
+#include <biotracker/util/MutexWrapper.h>
 
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -37,8 +38,10 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 
   private:
     // --
-    int m_itemSize; // defines how big elements are (so they fit well on big and small vids)
+    size_t m_numberOfUserStates = 3;
+    std::vector<bool> m_setUserStates;
 
+    int m_itemSize; // defines how big elements are (so they fit well on big and small vids)
     cv::Size m_subPixWinSize;
     cv::Size m_winSize;
     cv::TermCriteria m_termcrit;
@@ -81,6 +84,8 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 
     QColor m_validColor;
     QColor m_invalidColor;
+
+    Mutex m_userStatusMutex;
     // --
 
     void mouseReleaseEvent(QMouseEvent *e) override;
@@ -155,8 +160,15 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
      */
     void clampPosition(std::vector<cv::Point2f> &pos, int w, int h);
 
+    /**
+     * @brief updateUserStates
+     * make sure that all the user states are updated
+     */
+    void updateUserStates(size_t currentFrame);
+
 private Q_SLOTS:
     void checkboxChanged_invalidPoint(int state);
+    void checkboxChanged_userStatus(int state);
     void clicked_validColor();
     void clicked_invalidColor();
     void clicked_print();

@@ -14,6 +14,8 @@ enum class InterestPointStatus {
     Non_Existing	// the point does not exist yet! (because the user
 };					// jumped back in time
 
+const size_t interestPointMaximumUserStatus = sizeof(size_t) * 8;
+
 class InterestPoint : public BioTracker::Core::ObjectModel {
 public:
     InterestPoint();
@@ -23,7 +25,24 @@ public:
     bool isValid();
     void setValidity(bool v);
 
+    /**
+     * @brief addToUserStatus
+     * @param i
+     */
+    void addToUserStatus(const size_t i);
+
+    /**
+     * @brief removeFromUserStatus
+     * @param i
+     */
+    void removeFromUserStatus(const size_t i);
+
+    size_t getStatusAsI() {
+        return m_userStatus;
+    }
+
 private:
     bool m_isValid = true;
     cv::Point2f m_position;
+    size_t m_userStatus;
 };
