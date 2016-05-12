@@ -71,4 +71,7 @@ add_library(lucaskanade.tracker SHARED
     InterestPoint.cpp
 )
 
-target_link_libraries(lucaskanade.tracker ${OpenCV_LIBS})
+target_link_libraries(lucaskanade.tracker
+    ${OpenCV_LIBS}
+    ${CPM_LIBRARIES}
+)
