@@ -50,7 +50,7 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
         chkboxUserStatus->setAccessibleName(QString::number(i)); // hack to re-identify the checkbox
         QObject::connect(chkboxUserStatus, &QCheckBox::stateChanged,
             this, &LucasKanadeTracker::checkboxChanged_userStatus);
-        layout->addWidget(chkboxUserStatus, 9, i, 1, 1);
+        layout->addWidget(chkboxUserStatus, 9, static_cast<int>(i), 1, 1);
     }
 
 

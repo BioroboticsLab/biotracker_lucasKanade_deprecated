@@ -31,7 +31,7 @@ void InterestPoint::addToUserStatus(const size_t i) {
         throw std::out_of_range("UserStates cannot grow anymore!");
     }
 
-    const size_t bitRep = 1 << i;
+    const size_t bitRep = static_cast<size_t>(1) << i;
     m_userStatus = m_userStatus | bitRep;
 }
 
