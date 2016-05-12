@@ -45,11 +45,19 @@ find_package(OpenCV REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 
+set(Boost_USE_STATIC_LIBS OFF)
+find_package(Boost REQUIRED)
+
 include_directories(
     ${PROJECT_SOURCE_DIR}
     SYSTEM ${Qt5Widgets_INCLUDE_DIRS}
     SYSTEM ${OpenCV_INCLUDE_DIRS}
     SYSTEM ${Qt5OpenGL_INCLUDE_DIRS}
+    SYSTEM ${Boost_INCLUDE_DIRS}
+)
+
+link_directories(
+    ${Boost_LIBRARY_DIRS}
 )
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
