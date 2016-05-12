@@ -14,7 +14,7 @@
 using namespace BioTracker::Core;
 
 extern "C" {
-    void registerTracker() {
+    void __declspec(dllexport) registerTracker() {
         BioTracker::Core::Registry::getInstance().registerTrackerType<LucasKanadeTracker>("Lucas-Kanade");
     }
 }
