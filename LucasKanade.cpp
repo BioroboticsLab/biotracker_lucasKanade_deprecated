@@ -120,11 +120,7 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
     //
     const bool isLandscape = imgOriginal.rows > imgOriginal.cols;
 
-    // make sure that the circles are in "good" size, regardless of the video resolution (tiny vs gigantic)
-    const int perc_size = 45;
-    m_itemSize = !isLandscape ? imgOriginal.rows / perc_size : imgOriginal.cols / perc_size;
-
-    // make the winSize adaptable
+	// make the winSize adaptable
     const int currentMaxWinSize = m_winSizeSlider->maximum();
     const int newMaxWinSize = isLandscape ? imgOriginal.cols / 10 : imgOriginal.rows / 10;
     if (currentMaxWinSize != newMaxWinSize && newMaxWinSize > m_winSizeSlider->minimum()) {
@@ -198,6 +194,13 @@ void LucasKanadeTracker::paint(size_t, ProxyMat & mat, const TrackingAlgorithm::
 	if (!isInitialized)
 	{
 		cv::cvtColor(mat.getMat(), m_gray, cv::COLOR_BGR2GRAY);
+
+		const bool isLandscape = mat.getMat().rows > mat.getMat().cols;
+
+		// make sure that the circles are in "good" size, regardless of the video resolution (tiny vs gigantic)
+		const int perc_size = 45;
+		m_itemSize = !isLandscape ? mat.getMat().rows / perc_size : mat.getMat().cols / perc_size;
+
 	}
 	
 }
