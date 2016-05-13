@@ -18,7 +18,7 @@
 #include "InterestPoint.h"
 
 /*
- * Inspiered by:
+ * Inspired by:
  * https://github.com/Itseez/opencv/blob/master/samples/cpp/lkdemo.cpp
  */
 class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
@@ -38,30 +38,34 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 
   private:
     // --
-    size_t m_numberOfUserStates = 3;
-    std::vector<bool> m_setUserStates;
+    size_t				m_numberOfUserStates = 3;
+    std::vector<bool>	m_setUserStates;
 
-    int m_itemSize; // defines how big elements are (so they fit well on big and small vids)
-    cv::Size m_subPixWinSize;
-    cv::Size m_winSize;
-    cv::TermCriteria m_termcrit;
-    const int MAX_COUNT = 500;
-    cv::Mat m_gray;
-    cv::Mat m_prevGray;
-    size_t m_currentFrame;
+    int					m_itemSize; // defines how big elements are (so they fit well on big and small vids)
+    cv::Size			m_subPixWinSize;
+    cv::Size			m_winSize;
+    cv::TermCriteria	m_termcrit;
+    const int			MAX_COUNT = 500;
+    cv::Mat				m_gray;
 
-    bool m_shouldTrack; // only when true the system should track
-    bool m_pauseOnInvalidPoint; // if true, the application will pause when a point
+	size_t				m_frameIndex_prevGray; // holds the video index that corresponds to m_prevGray
+    cv::Mat				m_prevGray;		
+
+    size_t				m_currentFrame; // is always the current frame (updated in paint and track)
+
+    bool				m_shouldTrack; // only when true the system should track
+    bool				m_pauseOnInvalidPoint; // if true, the application will pause when a point
                             // becomes invalid
 
-    QSlider *m_winSizeSlider; // as we want to adapt the values of this class all the time we need to
-                            // keep it accessible from other methods in the object..
-    QLabel *m_winSizeValue;
 
-    QSlider *m_historySlider; // define how many elements are shown for history
-    QLabel *m_historyValue;
+	// as we want to adapt the values of this class all the time we need to
+	// keep it accessible from other methods in the object..
+    QSlider	*			m_winSizeSlider;                       
+    QLabel	*			m_winSizeValue;
+    QSlider *			m_historySlider; // define how many elements are shown for history
+    QLabel	*			m_historyValue;
 
-    std::set<Qt::Key> m_grabbedKeys;
+    std::set<Qt::Key>	m_grabbedKeys;
 
     /**
      * @brief m_invalidOffset

@@ -143,6 +143,7 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
 
         if (m_prevGray.empty()) {
             m_gray.copyTo(m_prevGray);
+			m_frameIndex_prevGray = m_currentFrame;
         }
 
         if (!currentPoints.empty()) {
@@ -179,12 +180,19 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
         }
 
         cv::swap(m_prevGray, m_gray);
+		m_frameIndex_prevGray = m_currentFrame;
+
     }
     m_userStatusMutex.Unlock();
 }
 
-void LucasKanadeTracker::paint(size_t, ProxyMat &, const TrackingAlgorithm::View &) {
-
+void LucasKanadeTracker::paint(size_t, ProxyMat & mat, const TrackingAlgorithm::View &) {
+	if (!isTrackingActivated() && ( m_currentFrame != m_frameIndex_prevGray ) ) // this happens when frames are skipped without tracking
+	{
+		cv::cvtColor(mat.getMat(), m_prevGray, cv::COLOR_BGR2GRAY);
+		m_frameIndex_prevGray = m_currentFrame; // all consecutive calls are thus not copying the frame any more
+	}
+	
 }
 
 void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, const View &) {
