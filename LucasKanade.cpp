@@ -188,7 +188,11 @@ void LucasKanadeTracker::paint(size_t, ProxyMat &, const TrackingAlgorithm::View
 }
 
 void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, const View &) {
-    std::vector<InterestPointStatus> filter;
+	// update current frame counter in case the track function is disabled. 
+	// not-so-nice solution since the same line appears in function "track"
+	m_currentFrame = currentFrame; // TODO must this be protected from other threads?
+	
+	std::vector<InterestPointStatus> filter;
     std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(currentFrame), filter);
 
     // fill the history
