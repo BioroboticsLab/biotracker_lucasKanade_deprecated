@@ -18,12 +18,12 @@ const size_t interestPointMaximumUserStatus = sizeof(size_t) * 8;
 
 class InterestPoint : public BioTracker::Core::ObjectModel {
 public:
-    InterestPoint();
-    virtual ~InterestPoint();
-    void setPosition(cv::Point2f pos);
+				InterestPoint();
+    virtual		~InterestPoint();
+    void		setPosition(cv::Point2f pos);
     cv::Point2f getPosition();
-    bool isValid();
-    void setValidity(bool v);
+    bool		isValid();
+    void		setValidity(bool v);
 
     /**
      * @brief addToUserStatus
@@ -42,7 +42,7 @@ public:
     }
 
 private:
-    bool m_isValid = true;
+    bool		m_isValid = true;
     cv::Point2f m_position;
-    size_t m_userStatus;
+    size_t		m_userStatus;
 };

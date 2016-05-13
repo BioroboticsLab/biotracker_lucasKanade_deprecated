@@ -34,9 +34,10 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     m_historyValue(new QLabel("0", getToolsWidget())),
     m_invalidOffset(-99999, -99999),
     m_validColor(QColor::fromRgb(0, 0, 255)),
-    m_invalidColor(QColor::fromRgb(255, 0, 0)){
+    m_invalidColor(QColor::fromRgb(255, 0, 0))
 
-    m_grabbedKeys.insert(Qt::Key_D);
+{
+	m_grabbedKeys.insert(Qt::Key_D);
 
     // initialize gui
     auto ui = getToolsWidget();
@@ -187,10 +188,16 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
 }
 
 void LucasKanadeTracker::paint(size_t, ProxyMat & mat, const TrackingAlgorithm::View &) {
-	if (!isTrackingActivated() && ( m_currentFrame != m_frameIndex_prevGray ) ) // this happens when frames are skipped without tracking
+	// when frames are skipped without tracking we have outdated gray frames yielding tracking errors
+	if (!isTrackingActivated() && ( m_currentFrame != m_frameIndex_prevGray ) ) 
 	{
 		cv::cvtColor(mat.getMat(), m_prevGray, cv::COLOR_BGR2GRAY);
 		m_frameIndex_prevGray = m_currentFrame; // all consecutive calls are thus not copying the frame any more
+	}
+
+	if (!isInitialized)
+	{
+		cv::cvtColor(mat.getMat(), m_gray, cv::COLOR_BGR2GRAY);
 	}
 	
 }
@@ -299,46 +306,47 @@ void LucasKanadeTracker::inputChanged() {
 
 
 
-void LucasKanadeTracker::tryCreateNewPoint(QPoint pos) {
-    if (m_gray.empty()) {
-        // this usually happens when users try to add interest points upon
-        // starting the video as then there is no track being called yet..
-        Q_EMIT notifyGUI("First tracking could not be recorded as some data must be initialized. Please try again.");
-        Q_EMIT forceTracking();
-    } else {
-        std::vector<InterestPointStatus> filter;
-        std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(m_currentFrame), filter);
-        cv::Point2f point = toCv(pos);
-        for (auto otherPos : newPoints) {
-            if (cv::norm(point - otherPos) <= 5) {
-                // the new point is too close to an existing other point.. abort
-                Q_EMIT notifyGUI("too close to an existing point..");
-                return;
-            }
+void LucasKanadeTracker::tryCreateNewPoint(QPoint pos) 
+{
+ //   if (m_gray.empty()) 
+	//{
+	//	// prevGray always exists 
+	//	m_prevGray.copyTo(m_gray);
+ //   }
+
+    std::vector<InterestPointStatus> filter;
+    std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(m_currentFrame), filter);
+    cv::Point2f point = toCv(pos);
+    for (auto otherPos : newPoints) {
+        if (cv::norm(point - otherPos) <= 5) {
+            // the new point is too close to an existing other point.. abort
+            Q_EMIT notifyGUI("too close to an existing point..");
+            return;
         }
-
-        std::vector<cv::Point2f> tmp;
-        tmp.push_back(point);
-        cv::cornerSubPix(m_gray, tmp, m_winSize, cv::Size(-1, -1), m_termcrit);
-
-        const auto newPos = tmp[0];
-        auto p = std::make_shared<InterestPoint>(); // TODO: this allocation is not 'pretty' as it is unnecessary
-        p->setPosition(cv::Point2f(newPos.x, newPos.y));
-        p->setValidity(true);
-
-        const size_t id = m_trackedObjects.size(); // position in list + id are correlated
-        TrackedObject o(id);
-        o.add(m_currentFrame, p);
-        m_trackedObjects.push_back(o);
-
-        m_currentActivePoint = static_cast<int>(id);
-
-        if (m_firstTrackedFrame > static_cast<int>(m_currentFrame)) { // for the history calculation
-            m_firstTrackedFrame = static_cast<int>(m_currentFrame);
-        }
-
-        Q_EMIT update();
     }
+
+    std::vector<cv::Point2f> tmp;
+    tmp.push_back(point);
+    cv::cornerSubPix(m_gray, tmp, m_winSize, cv::Size(-1, -1), m_termcrit);
+
+    const auto newPos = tmp[0];
+    auto p = std::make_shared<InterestPoint>(); // TODO: this allocation is not 'pretty' as it is unnecessary
+    p->setPosition(cv::Point2f(newPos.x, newPos.y));
+    p->setValidity(true);
+
+    const size_t id = m_trackedObjects.size(); // position in list + id are correlated
+    TrackedObject o(id);
+    o.add(m_currentFrame, p);
+    m_trackedObjects.push_back(o);
+
+    m_currentActivePoint = static_cast<int>(id);
+
+    if (m_firstTrackedFrame > static_cast<int>(m_currentFrame)) { // for the history calculation
+        m_firstTrackedFrame = static_cast<int>(m_currentFrame);
+    }
+
+    Q_EMIT update();
+    
 }
 
 void LucasKanadeTracker::activateExistingPoint(QPoint pos) {
@@ -379,12 +387,16 @@ void LucasKanadeTracker::moveCurrentActivePointTo(QPoint pos) {
 }
 
 void LucasKanadeTracker::deleteCurrentActivePoint() {
-    if (m_currentActivePoint >= 0) {
-        auto o = m_trackedObjects[m_currentActivePoint];
-        if (o.hasValuesAtFrame(m_currentFrame)) {
+    if (m_currentActivePoint >= 0) 
+	{
+		auto o = m_trackedObjects[m_currentActivePoint];
+
+        if (o.hasValuesAtFrame(m_currentFrame)) 
+		{
             auto traj = o.get<InterestPoint>(m_currentFrame);
             traj->setValidity(false);
-            Q_EMIT update();
+            
+			Q_EMIT update();
         }
     }
 }
