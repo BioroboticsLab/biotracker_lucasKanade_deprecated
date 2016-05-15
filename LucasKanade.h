@@ -54,7 +54,6 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 
     size_t				m_currentFrame; // is always the current frame (updated in paint and track)
 
-    bool				m_shouldTrack; // only when true the system should track
     bool				m_pauseOnInvalidPoint; // if true, the application will pause when a point
                             // becomes invalid
 
@@ -146,9 +145,9 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
      */
     void updateCurrentPoints(
         ulong frameNbr,
-        std::vector<cv::Point2f> pos,
-        std::vector<uchar> status,
-        std::vector<InterestPointStatus> filter);
+        std::vector<cv::Point2f> &pos,
+        std::vector<uchar> &status,
+        std::vector<InterestPointStatus> &filter);
 
     cv::Point2f toCv(QPoint p);
 

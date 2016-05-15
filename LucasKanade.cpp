@@ -30,7 +30,6 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     m_subPixWinSize(10, 10),
     m_winSize(31, 31),
     m_termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS,20,0.03),
-    m_shouldTrack(true),
     m_pauseOnInvalidPoint(false),
     m_winSizeSlider(new QSlider(getToolsWidget())),
     m_winSizeValue(new QLabel(QString::number(m_winSize.height), getToolsWidget())),
@@ -131,72 +130,82 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
         m_winSizeSlider->setMaximum(newMaxWinSize);
     }
 
-    //bool isStepForward = m_currentFrame == (frame - 1);
-    bool isStepForward = true; // TODO figure what we want: now the tracker will always track!
-
     m_currentFrame = frame; // TODO must this be protected from other threads?
     cv::cvtColor(imgOriginal, m_gray, cv::COLOR_BGR2GRAY);
 
-    if ((frame == 0 || isStepForward) && m_shouldTrack) {
+    std::vector<InterestPointStatus> filter;
+    std::vector<cv::Point2f> currentPoints = getCurrentPoints(static_cast<ulong>(frame) - 1, filter);
+    std::vector<uchar> status;
 
-        std::vector<InterestPointStatus> filter;
-        std::vector<cv::Point2f> currentPoints = getCurrentPoints(static_cast<ulong>(frame) - 1, filter);
-
-        if (m_prevGray.empty()) {
-            m_gray.copyTo(m_prevGray);
-			m_frameIndex_prevGray = m_currentFrame;
-        }
-
-        if (!currentPoints.empty()) {
-            std::vector<float> err;
-
-            // calculate pyramids:
-            const size_t maxLevel = 10;
-            std::vector<cv::Mat> prevPyr;
-            cv::buildOpticalFlowPyramid(m_prevGray, prevPyr, m_winSize, maxLevel);
-
-            std::vector<cv::Mat> pyr;
-            cv::buildOpticalFlowPyramid(m_gray, pyr, m_winSize, maxLevel);
-
-            std::vector<uchar> status;
-            std::vector<cv::Point2f> newPoints;
-            cv::calcOpticalFlowPyrLK(
-                prevPyr, /* prev */
-                pyr, /* next */
-                currentPoints,	/* prevPts */
-                newPoints, /* nextPts */
-                status,	/* status */
-                err	/* err */
-                ,m_winSize,	/* winSize */
-                maxLevel, /* maxLevel */
-                m_termcrit,	/* criteria */
-                0, /* flags */
-                0.001 /* minEigThreshold */
-            );
-
-            clampPosition(newPoints, m_gray.cols, m_gray.rows);
-            updateCurrentPoints(static_cast<ulong>(frame), newPoints, status, filter);
-            updateHistoryText();
-            updateUserStates(frame);
-        }
-
-        cv::swap(m_prevGray, m_gray);
-		m_frameIndex_prevGray = m_currentFrame;
-
+    if (m_prevGray.empty()) {
+        m_gray.copyTo(m_prevGray);
+            m_frameIndex_prevGray = m_currentFrame;
     }
+
+    if (!currentPoints.empty()) {
+        std::vector<float> err;
+
+        // calculate pyramids:
+        const size_t maxLevel = 10;
+        std::vector<cv::Mat> prevPyr;
+        cv::buildOpticalFlowPyramid(m_prevGray, prevPyr, m_winSize, maxLevel);
+
+        std::vector<cv::Mat> pyr;
+        cv::buildOpticalFlowPyramid(m_gray, pyr, m_winSize, maxLevel);
+
+        std::vector<cv::Point2f> newPoints;
+        cv::calcOpticalFlowPyrLK(
+        prevPyr, /* prev */
+        pyr, /* next */
+        currentPoints,	/* prevPts */
+        newPoints, /* nextPts */
+        status,	/* status */
+        err	/* err */
+        ,m_winSize,	/* winSize */
+        maxLevel, /* maxLevel */
+        m_termcrit,	/* criteria */
+        0, /* flags */
+        0.001 /* minEigThreshold */
+        );
+
+        clampPosition(newPoints, m_gray.cols, m_gray.rows);
+        updateCurrentPoints(static_cast<ulong>(frame), newPoints, status, filter);
+        updateHistoryText();
+        updateUserStates(frame);
+    }
+
+    cv::swap(m_prevGray, m_gray);
+    m_frameIndex_prevGray = m_currentFrame;
+
     m_userStatusMutex.Unlock();
 }
 
-void LucasKanadeTracker::paint(size_t, ProxyMat & mat, const TrackingAlgorithm::View &) {
+void LucasKanadeTracker::paint(size_t frame, ProxyMat & mat, const TrackingAlgorithm::View &) {
 	// when frames are skipped without tracking we have outdated gray frames yielding tracking errors
-	if (!isTrackingActivated() && ( m_currentFrame != m_frameIndex_prevGray ) ) 
-	{
+    m_userStatusMutex.Lock();
+    if (!isTrackingActivated() && ( m_currentFrame != m_frameIndex_prevGray )) {
 		cv::cvtColor(mat.getMat(), m_prevGray, cv::COLOR_BGR2GRAY);
 		m_frameIndex_prevGray = m_currentFrame; // all consecutive calls are thus not copying the frame any more
-	}
+    }
 
-	if (!isInitialized)
-	{
+    if (!isTrackingActivated()) {
+        // as we want the tracking points to be found later on, we need to keep them in
+        // their respective positions on each new frame that arrives.
+        // If a point is already available on a specific frame, we do not "update" them
+        // but rather keep the position that was set before.
+        std::vector<InterestPointStatus> filter;
+        std::vector<cv::Point2f> currentPoints = getCurrentPoints(static_cast<ulong>(frame) - 1, filter);
+        std::vector<uchar> status;
+        for (size_t i = 0; i < currentPoints.size(); i++) {
+            // this makes all given points valid. We need to do this to emulate
+            // the lucas-kanade OpenCV function which might disable some points if
+            // they are not valid anymore
+            status.push_back(1);
+        }
+        updateCurrentPoints(static_cast<ulong>(frame), currentPoints, status, filter);
+    }
+
+    if (!isInitialized) {
 		cv::cvtColor(mat.getMat(), m_gray, cv::COLOR_BGR2GRAY);
 
 		const bool isLandscape = mat.getMat().rows > mat.getMat().cols;
@@ -206,11 +215,13 @@ void LucasKanadeTracker::paint(size_t, ProxyMat & mat, const TrackingAlgorithm::
 		m_itemSize = !isLandscape ? mat.getMat().rows / perc_size : mat.getMat().cols / perc_size;
 
 	}
-	
+
+    m_userStatusMutex.Unlock();
 }
 
 void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, const View &) {
-	// update current frame counter in case the track function is disabled. 
+    m_userStatusMutex.Lock();
+    // update current frame counter in case the track function is disabled.
 	// not-so-nice solution since the same line appears in function "track"
 	m_currentFrame = currentFrame; // TODO must this be protected from other threads?
 	
@@ -278,6 +289,7 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
             }
         }
     }
+    m_userStatusMutex.Unlock();
 }
 
 void LucasKanadeTracker::keyPressEvent(QKeyEvent *ev) {
@@ -459,9 +471,9 @@ std::vector<cv::Point2f> LucasKanadeTracker::getCurrentPoints(
 
 void LucasKanadeTracker::updateCurrentPoints(
         ulong frameNbr,
-        std::vector<cv::Point2f> positions,
-        std::vector<uchar> status,
-        std::vector<InterestPointStatus> filter) {
+        std::vector<cv::Point2f> &positions,
+        std::vector<uchar> &status,
+        std::vector<InterestPointStatus> &filter) {
     // TODO: make this implementation more efficient.. please..
 
     // this must yield true, otherwise we lose the direct index<->id relation
