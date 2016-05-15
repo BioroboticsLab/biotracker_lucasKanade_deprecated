@@ -38,7 +38,7 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 
   private:
     // --
-	bool				isInitialized = false;
+    bool				m_isInitialized = false;
     size_t				m_numberOfUserStates = 3;
     std::vector<bool>	m_setUserStates;
 

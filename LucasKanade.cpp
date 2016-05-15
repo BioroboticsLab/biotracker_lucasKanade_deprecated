@@ -205,7 +205,7 @@ void LucasKanadeTracker::paint(size_t frame, ProxyMat & mat, const TrackingAlgor
         updateCurrentPoints(static_cast<ulong>(frame), currentPoints, status, filter);
     }
 
-    if (!isInitialized) {
+    if (!m_isInitialized) {
 		cv::cvtColor(mat.getMat(), m_gray, cv::COLOR_BGR2GRAY);
 
 		const bool isLandscape = mat.getMat().rows > mat.getMat().cols;
