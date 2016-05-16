@@ -190,7 +190,7 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
                                   status);
 
         clampPosition(newPoints, m_gray.cols, m_gray.rows);
-        updateCurrentPoints(static_cast<ulong>(frame), newPoints, status, filter);
+        updateCurrentPoints(static_cast<ulong>(frame), currentPoints, status, filter);
         updateHistoryText();
         updateUserStates(frame);
     }
@@ -270,6 +270,8 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
             m_lastDrawnActivePointX = x;
             m_lastDrawnActivePointY = y;
             currentActivePointIsDrawn = true;
+        } else if (m_trackOnlyActive) {
+            color.setAlpha(100);
         }
 
         drawEllipse(painter, p, i, x, y);
@@ -288,7 +290,7 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
         }
     }
 
-    if (!currentActivePointIsDrawn && m_currentActivePoint >= 0 && !isTrackingActivated()) {
+    if (!currentActivePointIsDrawn && m_currentActivePoint >= 0) {
         // When tracking is deactivated we want to see at least where the currently activated
         // point was last..
         QColor color = m_validColor;
