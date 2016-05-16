@@ -421,10 +421,9 @@ void LucasKanadeTracker::deleteCurrentActivePoint() {
 	{
 		auto o = m_trackedObjects[m_currentActivePoint];
 
-        if (o.hasValuesAtFrame(m_currentFrame)) 
-		{
+        if (o.hasValuesAtFrame(m_currentFrame)) {
             auto traj = o.get<InterestPoint>(m_currentFrame);
-            traj->setStatus(InterestPointStatus::Deleted);
+            traj->setStatus(InterestPointStatus::Invalid);
 			Q_EMIT update();
         }
     }
@@ -454,7 +453,9 @@ std::vector<cv::Point2f> LucasKanadeTracker::getCurrentPoints(
         auto o = m_trackedObjects[i];
         if (o.hasValuesAtFrame(frameNbr)) {
             auto traj = o.get<InterestPoint>(frameNbr);
-            if (m_trackOnlyActive && static_cast<int>(i) != m_currentActivePoint) {
+            if (traj->getStatus() == InterestPointStatus::Valid &&
+                    m_trackOnlyActive &&
+                    static_cast<int>(i) != m_currentActivePoint) {
                 filter.push_back(InterestPointStatus::Not_Tracked);
             } else {
                 filter.push_back(traj->getStatus());

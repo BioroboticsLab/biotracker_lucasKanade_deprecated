@@ -9,7 +9,6 @@
  */
 enum class InterestPointStatus {
     Valid, // The point is valid and can be tracked
-    Deleted,	// When the point was deleted
     Invalid,	// the point is not valid (due to the tracking)
                 // and should not be tracked!
     Non_Existing,	// the point does not exist yet! (because the user
