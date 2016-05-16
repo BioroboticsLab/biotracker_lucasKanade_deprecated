@@ -463,7 +463,7 @@ std::vector<cv::Point2f> LucasKanadeTracker::getCurrentPoints(
                 // TODO: find a nicer solution...
                 // we add an offset to the invalid position so that the Lucas-Kanade
                 // function does not yield a new position
-                positions.push_back(traj->getPosition() + m_invalidOffset);
+                positions.push_back(traj->getPosition());
             } else {
                 filter.push_back(InterestPointStatus::Valid);
                 positions.push_back(traj->getPosition());
