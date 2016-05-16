@@ -54,6 +54,7 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 
     size_t				m_currentFrame; // is always the current frame (updated in paint and track)
 
+    bool				m_trackOnlyActive; // when true we will ignore all points except the active one
     bool				m_pauseOnInvalidPoint; // if true, the application will pause when a point
                             // becomes invalid
 
@@ -167,6 +168,34 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
     void clampPosition(std::vector<cv::Point2f> &pos, int w, int h);
 
     /**
+     * @brief splitActivePoints
+     * Due to how this tracker is written we get all points for tracking with the
+     * OpenCV LK function. However, it would be great to filter out those that we should
+     * not follow anymore (as they might be invalid, deleted or whatever): thus this
+     * function temporarly cleans the points. To restitch the points later on to update
+     * the internal data structures correctly "joinActivePoints" MUST be called with the
+     * data aquired here to fix indexes.
+     * @param pos The points aquired from "getCurrentPoints" that should be filtered
+     * @param filter The filters aquired from "getCurrentPoints"
+     * @param tempPos OUT: points from "pos" that are acutally trackable
+     * @param activePoints: indexes of all points in tempPos
+     */
+    void splitActivePoints(std::vector<cv::Point2f> &pos, std::vector<InterestPointStatus> &filter,
+                           std::vector<cv::Point2f> &tempPos, std::vector<size_t> &activePoints);
+
+    /**
+     * @brief joinActivePoints
+     * Fix indexes "broken" by "splitActivePoints"
+     * @param pos All points available, this list should be updated with the active points
+     * @param tempPos Actual points that were used for the OpenCV LK tracking
+     * @param activePoints indexes of the tempPos in the pos list
+     * @param status list aquired from the OpenCV LK tracker function
+     * @return actual status list that should be used in "updateCurrentPoints"
+     */
+    std::vector<uchar> joinActivePoints(std::vector<cv::Point2f> &pos, std::vector<cv::Point2f> &tempPos,
+                          std::vector<size_t> &activePoints, std::vector<uchar> status);
+
+    /**
      * @brief updateUserStates
      * make sure that all the user states are updated
      */
@@ -177,6 +206,7 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
 private Q_SLOTS:
     void checkboxChanged_invalidPoint(int state);
     void checkboxChanged_userStatus(int state);
+    void checkboxChanged_activeUser(int state);
     void clicked_validColor();
     void clicked_invalidColor();
     void clicked_print();

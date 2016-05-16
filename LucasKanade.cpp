@@ -30,6 +30,7 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     m_subPixWinSize(10, 10),
     m_winSize(31, 31),
     m_termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS,20,0.03),
+    m_trackOnlyActive(false),
     m_pauseOnInvalidPoint(false),
     m_winSizeSlider(new QSlider(getToolsWidget())),
     m_winSizeValue(new QLabel(QString::number(m_winSize.height), getToolsWidget())),
@@ -54,7 +55,7 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
         chkboxUserStatus->setAccessibleName(QString::number(i)); // hack to re-identify the checkbox
         QObject::connect(chkboxUserStatus, &QCheckBox::stateChanged,
             this, &LucasKanadeTracker::checkboxChanged_userStatus);
-        layout->addWidget(chkboxUserStatus, 9, static_cast<int>(i), 1, 1);
+        layout->addWidget(chkboxUserStatus, 10, static_cast<int>(i), 1, 1);
     }
 
 
@@ -65,15 +66,21 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
         this, &LucasKanadeTracker::checkboxChanged_invalidPoint);
     layout->addWidget(chkboxInvalidPoints, 1, 0, 1, 3);
 
+    // Checkbox for tracking only the current active point
+    auto *chkboxActivePoints = new QCheckBox("Track only active point", ui);
+    chkboxActivePoints->setChecked(false);
+    QObject::connect(chkboxActivePoints, &QCheckBox::stateChanged,
+        this, &LucasKanadeTracker::checkboxChanged_activeUser);
+    layout->addWidget(chkboxActivePoints, 2, 0, 1, 3);
 
     // history
     auto *lbl_history = new QLabel("history", ui);
     m_historySlider->setMinimum(0);
     m_historySlider->setMaximum(maximumHistory());
     m_historySlider->setOrientation(Qt::Orientation::Horizontal);
-    layout->addWidget(lbl_history, 2, 0, 1, 1);
-    layout->addWidget(m_historyValue, 2, 2, 1, 1);
-    layout->addWidget(m_historySlider, 3, 0, 1, 3);
+    layout->addWidget(lbl_history, 3, 0, 1, 1);
+    layout->addWidget(m_historyValue, 3, 2, 1, 1);
+    layout->addWidget(m_historySlider, 4, 0, 1, 3);
     QObject::connect(m_historySlider, &QSlider::valueChanged,
         this, &LucasKanadeTracker::sliderChanged_history);
 
@@ -85,29 +92,29 @@ LucasKanadeTracker::LucasKanadeTracker(Settings &settings):
     m_winSizeSlider->setValue(m_winSize.height);
     QObject::connect(m_winSizeSlider, &QSlider::valueChanged,
         this, &LucasKanadeTracker::sliderChanged_winSize);
-    layout->addWidget(lbl_winSize, 4, 0, 1, 1);
-    layout->addWidget(m_winSizeValue, 5, 2, 1, 1);
-    layout->addWidget(m_winSizeSlider, 5, 0, 1, 2);
+    layout->addWidget(lbl_winSize, 5, 0, 1, 1);
+    layout->addWidget(m_winSizeValue, 6, 2, 1, 1);
+    layout->addWidget(m_winSizeSlider, 6, 0, 1, 2);
 
     // colors
     auto lbl_color = new QLabel("Change color:", ui);
-    layout->addWidget(lbl_color, 6, 0, 1, 1);
+    layout->addWidget(lbl_color, 7, 0, 1, 1);
 
     auto validColorBtn = new QPushButton("Valid color", ui);
     QObject::connect(validColorBtn, &QPushButton::clicked,
         this, &LucasKanadeTracker::clicked_validColor);
-    layout->addWidget(validColorBtn, 6, 1, 1, 1);
+    layout->addWidget(validColorBtn, 7, 1, 1, 1);
 
     auto invalidColorBtn = new QPushButton("Invalid color", ui);
     QObject::connect(invalidColorBtn, &QPushButton::clicked,
         this, &LucasKanadeTracker::clicked_invalidColor);
-    layout->addWidget(invalidColorBtn, 7, 1, 1, 1);
+    layout->addWidget(invalidColorBtn, 8, 1, 1, 1);
 
     // print
     auto printBtn = new QPushButton("Export", ui);
     QObject::connect(printBtn, &QPushButton::clicked,
         this, &LucasKanadeTracker::clicked_print);
-    layout->addWidget(printBtn, 8, 0, 1, 1);
+    layout->addWidget(printBtn, 9, 0, 1, 1);
 
     // ===
 
@@ -534,6 +541,14 @@ void LucasKanadeTracker::clampPosition(std::vector<cv::Point2f> &pos, int w, int
     }
 }
 
+void LucasKanadeTracker::splitActivePoints(std::vector<cv::Point2f> &pos, std::vector<InterestPointStatus> &filter, std::vector<cv::Point2f> &tempPos, std::vector<size_t> &activePoints) {
+
+}
+
+std::vector<uchar> LucasKanadeTracker::joinActivePoints(std::vector<cv::Point2f> &pos, std::vector<cv::Point2f> &tempPos, std::vector<size_t> &activePoints, std::vector<uchar> status) {
+    return status;
+}
+
 void LucasKanadeTracker::updateUserStates(size_t currentFrame) {
     if (m_currentActivePoint >= 0) {
         auto o = m_trackedObjects[m_currentActivePoint];
@@ -551,7 +566,6 @@ void LucasKanadeTracker::updateUserStates(size_t currentFrame) {
             }
         }
     }
-
 }
 
 void LucasKanadeTracker::drawEllipse(QPainter *painter, QPen &pen, size_t id, int x, int y) {
@@ -576,6 +590,10 @@ void LucasKanadeTracker::checkboxChanged_userStatus(int state) {
     size_t i = sender->accessibleName().toInt();
     m_setUserStates[i] = (state == Qt::Checked);
     m_userStatusMutex.Unlock();
+}
+
+void LucasKanadeTracker::checkboxChanged_activeUser(int state) {
+    m_trackOnlyActive = state == Qt::Checked;
 }
 
 void LucasKanadeTracker::clicked_validColor() {
