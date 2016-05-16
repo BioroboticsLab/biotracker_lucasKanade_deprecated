@@ -180,29 +180,12 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
     m_userStatusMutex.Unlock();
 }
 
-void LucasKanadeTracker::paint(size_t frame, ProxyMat & mat, const TrackingAlgorithm::View &) {
+void LucasKanadeTracker::paint(size_t, ProxyMat & mat, const TrackingAlgorithm::View &) {
 	// when frames are skipped without tracking we have outdated gray frames yielding tracking errors
     m_userStatusMutex.Lock();
     if (!isTrackingActivated() && ( m_currentFrame != m_frameIndex_prevGray )) {
 		cv::cvtColor(mat.getMat(), m_prevGray, cv::COLOR_BGR2GRAY);
 		m_frameIndex_prevGray = m_currentFrame; // all consecutive calls are thus not copying the frame any more
-    }
-
-    if (!isTrackingActivated()) {
-        // as we want the tracking points to be found later on, we need to keep them in
-        // their respective positions on each new frame that arrives.
-        // If a point is already available on a specific frame, we do not "update" them
-        // but rather keep the position that was set before.
-        std::vector<InterestPointStatus> filter;
-        std::vector<cv::Point2f> currentPoints = getCurrentPoints(static_cast<ulong>(frame) - 1, filter);
-        std::vector<uchar> status;
-        for (size_t i = 0; i < currentPoints.size(); i++) {
-            // this makes all given points valid. We need to do this to emulate
-            // the lucas-kanade OpenCV function which might disable some points if
-            // they are not valid anymore
-            status.push_back(1);
-        }
-        updateCurrentPoints(static_cast<ulong>(frame), currentPoints, status, filter);
     }
 
     if (!m_isInitialized) {
