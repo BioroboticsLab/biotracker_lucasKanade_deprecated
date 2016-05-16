@@ -11,8 +11,13 @@ enum class InterestPointStatus {
     Valid, // The point is valid and can be tracked
     Invalid,	// the point is not valid (due to the tracking)
                 // and should not be tracked!
-    Non_Existing	// the point does not exist yet! (because the user
-};					// jumped back in time
+    Non_Existing,	// the point does not exist yet! (because the user
+                    // jumped back in time
+    Not_Tracked		// occures when only the active point is tracked.
+                    // All other points that are valid are set to this state
+                    // during the time only the active point is tracked
+};
+
 
 const size_t interestPointMaximumUserStatus = sizeof(size_t) * 8;
 

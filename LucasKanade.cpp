@@ -264,14 +264,16 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
         int x = static_cast<int>(point.x);
         int y = static_cast<int>(point.y);
 
+        if (i != static_cast<size_t>(m_currentActivePoint) && m_trackOnlyActive) {
+            color.setAlpha(100);
+        }
+
         QPen p(color);
         if (i == static_cast<size_t>(m_currentActivePoint)) {
             p.setStyle(Qt::PenStyle::DotLine);
             m_lastDrawnActivePointX = x;
             m_lastDrawnActivePointY = y;
             currentActivePointIsDrawn = true;
-        } else if (m_trackOnlyActive) {
-            color.setAlpha(100);
         }
 
         drawEllipse(painter, p, i, x, y);
@@ -564,10 +566,19 @@ void LucasKanadeTracker::splitActivePoints(std::vector<cv::Point2f> &pos,
     assert(pos.size() == filter.size());
     assert(tempPos.size() == 0);
     assert(activePoints.size() == 0);
-    for (size_t i = 0; i < pos.size(); i++) {
-        if (filter[i] == InterestPointStatus::Valid) {
-            tempPos.push_back(pos[i]);
-            activePoints.push_back(i);
+    assert(static_cast<int>(pos.size()) > m_currentActivePoint);
+
+    if (m_trackOnlyActive) {
+        if (m_currentActivePoint >= 0 && filter[m_currentActivePoint] == InterestPointStatus::Valid) {
+            tempPos.push_back(pos[m_currentActivePoint]);
+            activePoints.push_back(static_cast<size_t>(m_currentActivePoint));
+        }
+    } else {
+        for (size_t i = 0; i < pos.size(); i++) {
+            if (filter[i] == InterestPointStatus::Valid) {
+                tempPos.push_back(pos[i]);
+                activePoints.push_back(i);
+            }
         }
     }
 }
