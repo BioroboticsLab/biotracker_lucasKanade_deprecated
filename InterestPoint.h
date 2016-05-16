@@ -23,13 +23,27 @@ const size_t interestPointMaximumUserStatus = sizeof(size_t) * 8;
 
 class InterestPoint : public BioTracker::Core::ObjectModel {
 public:
-				InterestPoint();
+                InterestPoint();
     virtual		~InterestPoint();
     void		setPosition(cv::Point2f pos);
     cv::Point2f getPosition();
     bool		isValid();
     InterestPointStatus getStatus() {
         return m_status;
+    }
+
+    /**
+     * @brief isDummy
+     * This is needed for to keep the indexing correct in LucasKanade.
+     * TODO: make this nicer at some point..
+     * @return
+     */
+    bool		isDummy() {
+        return m_isDummy;
+    }
+
+    void 		makeDummy() {
+        m_isDummy = true;
     }
 
     void		setStatus(InterestPointStatus s) {
@@ -56,4 +70,5 @@ private:
     InterestPointStatus m_status = InterestPointStatus::Valid;
     cv::Point2f m_position;
     size_t		m_userStatus;
+    bool		m_isDummy;
 };

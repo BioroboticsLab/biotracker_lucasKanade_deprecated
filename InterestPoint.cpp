@@ -1,6 +1,6 @@
 #include "InterestPoint.h"
 
-InterestPoint::InterestPoint(): ObjectModel(), m_userStatus(0) {
+InterestPoint::InterestPoint(): ObjectModel(), m_userStatus(0), m_isDummy(false) {
 
 }
 

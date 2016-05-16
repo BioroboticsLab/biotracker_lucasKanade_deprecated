@@ -277,7 +277,7 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
             currentActivePointIsDrawn = true;
         }
 
-        drawEllipse(painter, p, i, x, y);
+        drawEllipse(painter, p, data[i], i, x, y);
 
         // paint History
         color.setAlpha(100);
@@ -300,7 +300,7 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
         color.setAlpha(100);
         QPen p(color);
         p.setStyle(Qt::PenStyle::DotLine);
-        drawEllipse(painter, p, m_currentActivePoint, m_lastDrawnActivePointX, m_lastDrawnActivePointY);
+        drawEllipse(painter, p, data[m_currentActivePoint], m_currentActivePoint, m_lastDrawnActivePointX, m_lastDrawnActivePointY);
     }
 
     m_userStatusMutex.Unlock();
@@ -455,6 +455,8 @@ std::vector<cv::Point2f> LucasKanadeTracker::getCurrentPoints(
     positions.reserve(m_trackedObjects.size());
 
     cv::Point2f dummy(-1, -1);
+    InterestPoint dummyIp;
+    dummyIp.makeDummy();
     for (size_t i = 0; i < m_trackedObjects.size(); i++) {
         auto o = m_trackedObjects[i];
         if (o.hasValuesAtFrame(frameNbr)) {
@@ -470,6 +472,7 @@ std::vector<cv::Point2f> LucasKanadeTracker::getCurrentPoints(
             data.push_back(*traj);
         } else {
             filter.push_back(InterestPointStatus::Non_Existing);
+            data.push_back(dummyIp);
             positions.push_back(dummy);
         }
     }
@@ -637,13 +640,15 @@ void LucasKanadeTracker::updateUserStates(size_t currentFrame) {
     }
 }
 
-void LucasKanadeTracker::drawEllipse(QPainter *painter, QPen &pen, size_t id, int x, int y) {
+void LucasKanadeTracker::drawEllipse(QPainter *painter, QPen &pen, InterestPoint &point, size_t id, int x, int y) {
     pen.setWidth(m_itemSize / 3 > 0 ? m_itemSize / 3 : 1);
     int itemSizeHalf = m_itemSize / 2;
     painter->setPen(pen);
     painter->drawEllipse(x - itemSizeHalf, y - itemSizeHalf, m_itemSize, m_itemSize);
     auto idTxt = QString::number(id);
+    auto flagTxt = QString::number(point.getStatusAsI());
     painter->drawText(x, y - itemSizeHalf, idTxt);
+    painter->drawText(x + itemSizeHalf, y + itemSizeHalf, flagTxt);
     painter->drawRect(x, y, 1, 1);
 }
 

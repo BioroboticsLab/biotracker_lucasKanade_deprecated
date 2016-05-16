@@ -210,7 +210,7 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
      */
     void updateUserStates(size_t currentFrame);
 
-    void drawEllipse(QPainter* painter, QPen& pen, size_t id, int x, int y);
+    void drawEllipse(QPainter* painter, QPen& pen, InterestPoint &point, size_t id, int x, int y);
 
 private Q_SLOTS:
     void checkboxChanged_invalidPoint(int state);
