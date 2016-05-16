@@ -131,7 +131,8 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
      */
     std::vector<cv::Point2f> getCurrentPoints(
         ulong frameNbr,
-        std::vector<InterestPointStatus> &filter);
+        std::vector<InterestPointStatus> &filter,
+        std::vector<InterestPoint> &data);
 
     /**
      * @brief updateCurrentPoints

@@ -141,7 +141,8 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
     cv::cvtColor(imgOriginal, m_gray, cv::COLOR_BGR2GRAY);
 
     std::vector<InterestPointStatus> filter;
-    std::vector<cv::Point2f> currentPoints = getCurrentPoints(static_cast<ulong>(frame) - 1, filter);
+    std::vector<InterestPoint> data;
+    std::vector<cv::Point2f> currentPoints = getCurrentPoints(static_cast<ulong>(frame) - 1, filter, data);
 
     if (m_prevGray.empty()) {
         m_gray.copyTo(m_prevGray);
@@ -230,7 +231,8 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
 	m_currentFrame = currentFrame; // TODO must this be protected from other threads?
 	
 	std::vector<InterestPointStatus> filter;
-    std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(currentFrame), filter);
+    std::vector<InterestPoint> data;
+    std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(currentFrame), filter, data);
 
     // fill the history
     std::vector<std::vector<cv::Point2f>> history;
@@ -239,7 +241,8 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
         ulong histTime = static_cast<ulong>(currentFrame - t);
         
         std::vector<InterestPointStatus> dummyfilter;
-        std::vector<cv::Point2f> histPoints = getCurrentPoints(histTime, dummyfilter);
+        std::vector<InterestPoint> data2;
+        std::vector<cv::Point2f> histPoints = getCurrentPoints(histTime, dummyfilter, data2);
         history.push_back(histPoints);
     }
 
@@ -345,7 +348,8 @@ void LucasKanadeTracker::tryCreateNewPoint(QPoint pos)
  //   }
 
     std::vector<InterestPointStatus> filter;
-    std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(m_currentFrame), filter);
+    std::vector<InterestPoint> data;
+    std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(m_currentFrame), filter, data);
     cv::Point2f point = toCv(pos);
     for (auto otherPos : newPoints) {
         if (cv::norm(point - otherPos) <= 5) {
@@ -383,7 +387,8 @@ void LucasKanadeTracker::activateExistingPoint(QPoint pos) {
     if (m_trackedObjects.size() > 0) {
         cv::Point2f point = toCv(pos);
         std::vector<InterestPointStatus> filter;
-        std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(m_currentFrame), filter);
+        std::vector<InterestPoint> data;
+        std::vector<cv::Point2f> newPoints = getCurrentPoints(static_cast<ulong>(m_currentFrame), filter, data);
         size_t currentClosestId = 0;
         double currentMinDist = cv::norm(point - newPoints[0]);
         for (size_t i = 1; i < newPoints.size(); i++) {
@@ -437,11 +442,12 @@ void LucasKanadeTracker::autoFindInitPoints() {
 }
 
 std::vector<cv::Point2f> LucasKanadeTracker::getCurrentPoints(
-        ulong frameNbr, std::vector<InterestPointStatus> &filter) {
+        ulong frameNbr, std::vector<InterestPointStatus> &filter, std::vector<InterestPoint> &data) {
     // TODO: make this implementation more efficient.. please..
     // TODO: find a nicer solution for the filter-issue
     // we want the filter to be empty as we fill it up here!
     assert(filter.size() == 0);
+    assert(data.size() == 0);
 
     filter.reserve(m_trackedObjects.size());
 
@@ -461,6 +467,7 @@ std::vector<cv::Point2f> LucasKanadeTracker::getCurrentPoints(
                 filter.push_back(traj->getStatus());
             }
             positions.push_back(traj->getPosition());
+            data.push_back(*traj);
         } else {
             filter.push_back(InterestPointStatus::Non_Existing);
             positions.push_back(dummy);
