@@ -16,11 +16,8 @@ cv::Point2f InterestPoint::getPosition() {
 }
 
 bool InterestPoint::isValid() {
-    return m_isValid;
-}
-
-void InterestPoint::setValidity(bool v) {
-    m_isValid = v;
+    return m_status == InterestPointStatus::Valid ||
+            m_status == InterestPointStatus::Not_Tracked;
 }
 
 void InterestPoint::addToUserStatus(const size_t i) {

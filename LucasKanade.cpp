@@ -364,7 +364,7 @@ void LucasKanadeTracker::tryCreateNewPoint(QPoint pos)
     const auto newPos = tmp[0];
     auto p = std::make_shared<InterestPoint>(); // TODO: this allocation is not 'pretty' as it is unnecessary
     p->setPosition(cv::Point2f(newPos.x, newPos.y));
-    p->setValidity(true);
+    p->setStatus(InterestPointStatus::Valid);
 
     const size_t id = m_trackedObjects.size(); // position in list + id are correlated
     TrackedObject o(id);
@@ -409,7 +409,7 @@ void LucasKanadeTracker::moveCurrentActivePointTo(QPoint pos) {
             Q_EMIT notifyGUI("Selected point is not in range!");
         } else {
             auto p = std::make_shared<InterestPoint>();
-            p->setValidity(true);
+            p->setStatus(InterestPointStatus::Valid);
             p->setPosition(toCv(pos));
             m_trackedObjects[m_currentActivePoint].add(m_currentFrame, p);
             Q_EMIT update();
@@ -426,8 +426,7 @@ void LucasKanadeTracker::deleteCurrentActivePoint() {
         if (o.hasValuesAtFrame(m_currentFrame)) 
 		{
             auto traj = o.get<InterestPoint>(m_currentFrame);
-            traj->setValidity(false);
-            
+            traj->setStatus(InterestPointStatus::Deleted);
 			Q_EMIT update();
         }
     }
@@ -467,6 +466,7 @@ std::vector<cv::Point2f> LucasKanadeTracker::getCurrentPoints(
             } else {
                 if (m_trackOnlyActive && static_cast<int>(i) != m_currentActivePoint) {
                     filter.push_back(InterestPointStatus::Not_Tracked);
+                    traj->setStatus(InterestPointStatus::Not_Tracked);
                 } else {
                     filter.push_back(InterestPointStatus::Valid);
                 }
@@ -509,9 +509,9 @@ void LucasKanadeTracker::updateCurrentPoints(
         if (filter[i] == InterestPointStatus::Valid || filter[i] == InterestPointStatus::Not_Tracked) {
             auto p = std::make_shared<InterestPoint>(); // TODO: this allocation is not 'pretty' as it is unnecessary
             if (status[i]) {
-                p->setValidity(true);
+                p->setStatus(InterestPointStatus::Valid);
             } else {
-                p->setValidity(false);
+                p->setStatus(InterestPointStatus::Invalid);
                 somePointsAreInvalid = true;
             }
 

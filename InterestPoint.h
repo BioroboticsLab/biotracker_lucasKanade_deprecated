@@ -9,6 +9,7 @@
  */
 enum class InterestPointStatus {
     Valid, // The point is valid and can be tracked
+    Deleted,	// When the point was deleted
     Invalid,	// the point is not valid (due to the tracking)
                 // and should not be tracked!
     Non_Existing,	// the point does not exist yet! (because the user
@@ -28,7 +29,13 @@ public:
     void		setPosition(cv::Point2f pos);
     cv::Point2f getPosition();
     bool		isValid();
-    void		setValidity(bool v);
+    InterestPointStatus getStatus() {
+        return m_status;
+    }
+
+    void		setStatus(InterestPointStatus s) {
+        m_status = s;
+    }
 
     /**
      * @brief addToUserStatus
@@ -47,7 +54,7 @@ public:
     }
 
 private:
-    bool		m_isValid = true;
+    InterestPointStatus m_status = InterestPointStatus::Valid;
     cv::Point2f m_position;
     size_t		m_userStatus;
 };
