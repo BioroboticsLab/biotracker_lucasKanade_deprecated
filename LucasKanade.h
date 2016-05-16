@@ -77,6 +77,8 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
      * The currently active point that can be moved by the mouse curor
      */
     int m_currentActivePoint = -1;
+    int m_lastDrawnActivePointX = -1;
+    int m_lastDrawnActivePointY = -1;
 
     // to calculate how big the history can be we need to know when we had the very first tracked point in time...
     int m_firstTrackedFrame = -1;
@@ -169,6 +171,8 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
      * make sure that all the user states are updated
      */
     void updateUserStates(size_t currentFrame);
+
+    void drawEllipse(QPainter* painter, QPen& pen, size_t id, int x, int y);
 
 private Q_SLOTS:
     void checkboxChanged_invalidPoint(int state);

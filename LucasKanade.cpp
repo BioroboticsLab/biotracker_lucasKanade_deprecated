@@ -222,7 +222,10 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
         history.push_back(histPoints);
     }
 
-
+    bool currentActivePointIsDrawn = false;
+    QFont font = painter->font();
+    font.setPixelSize(m_itemSize);
+    painter->setFont(font);
     size_t i;
     for (i = 0; i < newPoints.size(); i++) {
         if (filter[i] == InterestPointStatus::Non_Existing) {
@@ -240,24 +243,15 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
         int x = static_cast<int>(point.x);
         int y = static_cast<int>(point.y);
 
-        QFont font = painter->font();
-        font.setPixelSize(m_itemSize);
-        painter->setFont(font);
-
         QPen p(color);
         if (i == static_cast<size_t>(m_currentActivePoint)) {
             p.setStyle(Qt::PenStyle::DotLine);
+            m_lastDrawnActivePointX = x;
+            m_lastDrawnActivePointY = y;
+            currentActivePointIsDrawn = true;
         }
 
-        p.setWidth(m_itemSize / 3 > 0 ? m_itemSize / 3 : 1);
-
-        int itemSizeHalf = m_itemSize / 2;
-
-        painter->setPen(p);
-        painter->drawEllipse(x - itemSizeHalf, y - itemSizeHalf, m_itemSize, m_itemSize);
-        auto idTxt = QString::number(i);
-        painter->drawText(x, y - itemSizeHalf, idTxt);
-        painter->drawRect(x, y, 1, 1);
+        drawEllipse(painter, p, i, x, y);
 
         // paint History
         color.setAlpha(100);
@@ -272,6 +266,17 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
             }
         }
     }
+
+    if (!currentActivePointIsDrawn && m_currentActivePoint >= 0 && !isTrackingActivated()) {
+        // When tracking is deactivated we want to see at least where the currently activated
+        // point was last..
+        QColor color = m_validColor;
+        color.setAlpha(100);
+        QPen p(color);
+        p.setStyle(Qt::PenStyle::DotLine);
+        drawEllipse(painter, p, m_currentActivePoint, m_lastDrawnActivePointX, m_lastDrawnActivePointY);
+    }
+
     m_userStatusMutex.Unlock();
 }
 
@@ -547,6 +552,16 @@ void LucasKanadeTracker::updateUserStates(size_t currentFrame) {
         }
     }
 
+}
+
+void LucasKanadeTracker::drawEllipse(QPainter *painter, QPen &pen, size_t id, int x, int y) {
+    pen.setWidth(m_itemSize / 3 > 0 ? m_itemSize / 3 : 1);
+    int itemSizeHalf = m_itemSize / 2;
+    painter->setPen(pen);
+    painter->drawEllipse(x - itemSizeHalf, y - itemSizeHalf, m_itemSize, m_itemSize);
+    auto idTxt = QString::number(id);
+    painter->drawText(x, y - itemSizeHalf, idTxt);
+    painter->drawRect(x, y, 1, 1);
 }
 
 // ============== GUI HANDLING ==================
