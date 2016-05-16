@@ -465,7 +465,11 @@ std::vector<cv::Point2f> LucasKanadeTracker::getCurrentPoints(
                 // function does not yield a new position
                 positions.push_back(traj->getPosition());
             } else {
-                filter.push_back(InterestPointStatus::Valid);
+                if (m_trackOnlyActive && static_cast<int>(i) != m_currentActivePoint) {
+                    filter.push_back(InterestPointStatus::Not_Tracked);
+                } else {
+                    filter.push_back(InterestPointStatus::Valid);
+                }
                 positions.push_back(traj->getPosition());
             }
         } else {
@@ -502,7 +506,7 @@ void LucasKanadeTracker::updateCurrentPoints(
 
     bool somePointsAreInvalid = false;
     for (size_t i = 0; i < positions.size(); i++) {
-        if (filter[i] == InterestPointStatus::Valid) {
+        if (filter[i] == InterestPointStatus::Valid || filter[i] == InterestPointStatus::Not_Tracked) {
             auto p = std::make_shared<InterestPoint>(); // TODO: this allocation is not 'pretty' as it is unnecessary
             if (status[i]) {
                 p->setValidity(true);
