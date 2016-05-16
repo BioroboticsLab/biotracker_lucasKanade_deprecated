@@ -142,14 +142,21 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
 
     std::vector<InterestPointStatus> filter;
     std::vector<cv::Point2f> currentPoints = getCurrentPoints(static_cast<ulong>(frame) - 1, filter);
-    std::vector<uchar> status;
 
     if (m_prevGray.empty()) {
         m_gray.copyTo(m_prevGray);
             m_frameIndex_prevGray = m_currentFrame;
     }
 
-    if (!currentPoints.empty()) {
+    // clamp away invalid points:
+    std::vector<cv::Point2f> currentPointsOnlyActive;
+    std::vector<size_t> activePointIds;
+    splitActivePoints(currentPoints,
+              filter,
+              currentPointsOnlyActive,
+              activePointIds);
+
+    if (!currentPointsOnlyActive.empty()) {
         std::vector<float> err;
 
         // calculate pyramids:
@@ -161,10 +168,11 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
         cv::buildOpticalFlowPyramid(m_gray, pyr, m_winSize, maxLevel);
 
         std::vector<cv::Point2f> newPoints;
+        std::vector<uchar> status;
         cv::calcOpticalFlowPyrLK(
         prevPyr, /* prev */
         pyr, /* next */
-        currentPoints,	/* prevPts */
+        currentPointsOnlyActive,	/* prevPts */
         newPoints, /* nextPts */
         status,	/* status */
         err	/* err */
@@ -174,6 +182,12 @@ void LucasKanadeTracker::track(size_t frame, const cv::Mat &imgOriginal) {
         0, /* flags */
         0.001 /* minEigThreshold */
         );
+
+        // put together the clamped away points
+        status = joinActivePoints(currentPoints,
+                                  newPoints,
+                                  activePointIds,
+                                  status);
 
         clampPosition(newPoints, m_gray.cols, m_gray.rows);
         updateCurrentPoints(static_cast<ulong>(frame), newPoints, status, filter);
@@ -541,12 +555,42 @@ void LucasKanadeTracker::clampPosition(std::vector<cv::Point2f> &pos, int w, int
     }
 }
 
-void LucasKanadeTracker::splitActivePoints(std::vector<cv::Point2f> &pos, std::vector<InterestPointStatus> &filter, std::vector<cv::Point2f> &tempPos, std::vector<size_t> &activePoints) {
-
+void LucasKanadeTracker::splitActivePoints(std::vector<cv::Point2f> &pos,
+                                           std::vector<InterestPointStatus> &filter,
+                                           std::vector<cv::Point2f> &tempPos,
+                                           std::vector<size_t> &activePoints) {
+    assert(pos.size() == filter.size());
+    assert(tempPos.size() == 0);
+    assert(activePoints.size() == 0);
+    for (size_t i = 0; i < pos.size(); i++) {
+        if (filter[i] == InterestPointStatus::Valid) {
+            tempPos.push_back(pos[i]);
+            activePoints.push_back(i);
+        }
+    }
 }
 
-std::vector<uchar> LucasKanadeTracker::joinActivePoints(std::vector<cv::Point2f> &pos, std::vector<cv::Point2f> &tempPos, std::vector<size_t> &activePoints, std::vector<uchar> status) {
-    return status;
+std::vector<uchar> LucasKanadeTracker::joinActivePoints(std::vector<cv::Point2f> &pos,
+                                                        std::vector<cv::Point2f> &tempPos,
+                                                        std::vector<size_t> &activePoints,
+                                                        std::vector<uchar> status) {
+    assert(tempPos.size() == status.size());
+    assert(pos.size() >= tempPos.size());
+
+    // status must fit size-wise with pos
+    std::vector<uchar> realStatus(pos.size());
+    for (size_t i = 0; i < realStatus.size(); i++) {
+        // we make all positions "valid" for now
+        realStatus[i] = 1;
+    }
+
+    for (size_t i = 0; i < activePoints.size(); i++) {
+        size_t id = activePoints[i];
+        pos[id] = tempPos[i];
+        realStatus[id] = status[i];
+    }
+
+    return realStatus;
 }
 
 void LucasKanadeTracker::updateUserStates(size_t currentFrame) {
