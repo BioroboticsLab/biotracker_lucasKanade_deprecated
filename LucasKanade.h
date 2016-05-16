@@ -196,6 +196,14 @@ class LucasKanadeTracker : public BioTracker::Core::TrackingAlgorithm {
                           std::vector<size_t> &activePoints, std::vector<uchar> status);
 
     /**
+     * @brief activateAllNonTrackedPoints
+     * When single-user-tracking is disabled, we want to activate all points that were
+     * deactiaveted
+     * @param frame
+     */
+    void activateAllNonTrackedPoints(size_t frame);
+
+    /**
      * @brief updateUserStates
      * make sure that all the user states are updated
      */

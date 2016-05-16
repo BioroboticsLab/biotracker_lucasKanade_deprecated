@@ -259,14 +259,12 @@ void LucasKanadeTracker::paintOverlay(size_t currentFrame, QPainter *painter, co
         if (filter[i] == InterestPointStatus::Invalid) {
             point -= m_invalidOffset;
             color = m_invalidColor;
+        } else if (filter[i] == InterestPointStatus::Not_Tracked) {
+            color.setAlpha(100);
         }
 
         int x = static_cast<int>(point.x);
         int y = static_cast<int>(point.y);
-
-        if (i != static_cast<size_t>(m_currentActivePoint) && m_trackOnlyActive) {
-            color.setAlpha(100);
-        }
 
         QPen p(color);
         if (i == static_cast<size_t>(m_currentActivePoint)) {
@@ -456,22 +454,12 @@ std::vector<cv::Point2f> LucasKanadeTracker::getCurrentPoints(
         auto o = m_trackedObjects[i];
         if (o.hasValuesAtFrame(frameNbr)) {
             auto traj = o.get<InterestPoint>(frameNbr);
-            if (!traj->isValid()) {
-                filter.push_back(InterestPointStatus::Invalid);
-
-                // TODO: find a nicer solution...
-                // we add an offset to the invalid position so that the Lucas-Kanade
-                // function does not yield a new position
-                positions.push_back(traj->getPosition());
+            if (m_trackOnlyActive && static_cast<int>(i) != m_currentActivePoint) {
+                filter.push_back(InterestPointStatus::Not_Tracked);
             } else {
-                if (m_trackOnlyActive && static_cast<int>(i) != m_currentActivePoint) {
-                    filter.push_back(InterestPointStatus::Not_Tracked);
-                    traj->setStatus(InterestPointStatus::Not_Tracked);
-                } else {
-                    filter.push_back(InterestPointStatus::Valid);
-                }
-                positions.push_back(traj->getPosition());
+                filter.push_back(traj->getStatus());
             }
+            positions.push_back(traj->getPosition());
         } else {
             filter.push_back(InterestPointStatus::Non_Existing);
             positions.push_back(dummy);
@@ -509,7 +497,7 @@ void LucasKanadeTracker::updateCurrentPoints(
         if (filter[i] == InterestPointStatus::Valid || filter[i] == InterestPointStatus::Not_Tracked) {
             auto p = std::make_shared<InterestPoint>(); // TODO: this allocation is not 'pretty' as it is unnecessary
             if (status[i]) {
-                p->setStatus(InterestPointStatus::Valid);
+                p->setStatus(filter[i]);
             } else {
                 p->setStatus(InterestPointStatus::Invalid);
                 somePointsAreInvalid = true;
@@ -610,6 +598,18 @@ std::vector<uchar> LucasKanadeTracker::joinActivePoints(std::vector<cv::Point2f>
     return realStatus;
 }
 
+void LucasKanadeTracker::activateAllNonTrackedPoints(size_t frame) {
+    for (size_t i = 0; i < m_trackedObjects.size(); i++) {
+        auto o = m_trackedObjects[i];
+        if (o.hasValuesAtFrame(frame)) {
+            auto traj = o.get<InterestPoint>(frame);
+            if (traj->getStatus() == InterestPointStatus::Not_Tracked) {
+                traj->setStatus(InterestPointStatus::Valid);
+            }
+        }
+    }
+}
+
 void LucasKanadeTracker::updateUserStates(size_t currentFrame) {
     if (m_currentActivePoint >= 0) {
         auto o = m_trackedObjects[m_currentActivePoint];
@@ -654,7 +654,12 @@ void LucasKanadeTracker::checkboxChanged_userStatus(int state) {
 }
 
 void LucasKanadeTracker::checkboxChanged_activeUser(int state) {
+    m_userStatusMutex.Lock();
     m_trackOnlyActive = state == Qt::Checked;
+    if (!m_trackOnlyActive) {
+        activateAllNonTrackedPoints(m_currentFrame);
+    }
+    m_userStatusMutex.Unlock();
 }
 
 void LucasKanadeTracker::clicked_validColor() {
@@ -688,7 +693,7 @@ void LucasKanadeTracker::clicked_print() {
             auto o = m_trackedObjects[i];
             if (o.hasValuesAtFrame(frame)) {
                 auto traj = o.get<InterestPoint>(frame);
-                if (traj->isValid()) {
+                if (traj->getStatus() == InterestPointStatus::Valid) {
                     output.append(QString::number(frame));
                     output.append(";");
                     output.append(QString::number(i));
